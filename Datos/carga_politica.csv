@@ -1,0 +1,21 @@
+politica_id,zona_id,nombre_politica,hora_encendido,hora_apagado,nivel_lux_umbral,nivel_potencia_reduccion_pct,aplica_fines_semana,aplica_festivos,fecha_vigencia_desde,fecha_vigencia_hasta,activa,descripcion
+1,1,Politica Zona Usaquén,17:30:00,05:30:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+2,2,Politica Zona Chapinero,17:30:00,05:30:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+3,3,Politica Zona Santa Fe,17:30:00,05:30:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+4,4,Politica Zona San Cristóbal,18:00:00,05:00:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+5,5,Politica Zona Usme,18:00:00,05:00:00,30.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+6,6,Politica Zona Tunjuelito,18:00:00,05:00:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+7,7,Politica Zona Bosa,18:00:00,05:00:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+8,8,Politica Zona Kennedy,18:00:00,05:00:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+9,9,Politica Zona Fontibón,18:00:00,05:00:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+10,10,Politica Zona Engativá,18:00:00,05:00:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+11,11,Politica Zona Suba,17:30:00,05:30:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+12,12,Politica Zona Barrios Unidos,18:00:00,05:00:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+13,13,Politica Zona Teusaquillo,17:30:00,05:30:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+14,14,Politica Zona Los Mártires,17:30:00,05:30:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+15,15,Politica Zona Antonio Nariño,18:00:00,05:00:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+16,16,Politica Zona Puente Aranda,18:00:00,05:00:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+17,17,Politica Zona La Candelaria,17:30:00,05:30:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+18,18,Politica Zona Rafael Uribe,18:00:00,05:00:00,40.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+19,19,Politica Zona Ciudad Bolívar,18:00:00,05:00:00,30.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno
+20,20,Politica Zona Sumapaz,18:00:00,05:00:00,30.0,80,1,1,2023-01-01,,1,Política estándar de alumbrado público nocturno

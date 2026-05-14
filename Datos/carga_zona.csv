@@ -1,0 +1,21 @@
+nombre_zona,localidad,tipo_zona_id,latitud,longitud,poblacion,area_km2
+Usaquén,Usaquén,2,4.701443,-74.031189,500000,65.31
+Chapinero,Chapinero,2,4.644723,-74.059753,139701,38.15
+Santa Fe,Santa Fe,4,4.596524,-74.073839,107044,45.17
+San Cristóbal,San Cristóbal,1,4.56489,-74.089571,406374,49.84
+Usme,Usme,5,4.478,-74.134,432724,215.06
+Tunjuelito,Tunjuelito,1,4.572,-74.131,201843,10.6
+Bosa,Bosa,1,4.628,-74.197,715836,24.24
+Kennedy,Kennedy,1,4.627,-74.164,1230539,38.73
+Fontibón,Fontibón,3,4.673,-74.146,422367,33.35
+Engativá,Engativá,1,4.702,-74.112,887080,35.88
+Suba,Suba,4,4.742,-74.083,1315509,87.98
+Barrios Unidos,Barrios Unidos,1,4.665,-74.071,243219,9.19
+Teusaquillo,Teusaquillo,2,4.651,-74.085,147318,14.38
+Los Mártires,Los Mártires,4,4.609,-74.086,97257,6.53
+Antonio Nariño,Antonio Nariño,1,4.594,-74.108,109193,4.88
+Puente Aranda,Puente Aranda,3,4.621,-74.109,258441,17.36
+La Candelaria,La Candelaria,4,4.597,-74.074,23680,1.83
+Rafael Uribe,Rafael Uribe,1,4.56,-74.113,377836,13.85
+Ciudad Bolívar,Ciudad Bolívar,5,4.509,-74.16,739140,132.99
+Sumapaz,Sumapaz,5,4.213,-74.357,6815,780.0
