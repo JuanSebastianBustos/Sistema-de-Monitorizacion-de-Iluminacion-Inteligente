@@ -1,0 +1,32 @@
+{
+  "name": "Iluminación Bogotá",
+  "dataColors": [
+    "#2E5C8A",
+    "#1A7A4A",
+    "#F4A20D",
+    "#C0392B",
+    "#5B9BD5",
+    "#52B788",
+    "#7B68EE",
+    "#E57373"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#1B2A4A",
+  "tableAccent": "#2E5C8A",
+  "visualStyles": {
+    "*": {
+      "*": {
+        "fontFamily": [{ "value": "Segoe UI" }],
+        "background": [{ "color": { "solid": { "color": "#FFFFFF" } } }]
+      }
+    },
+    "card": {
+      "*": {
+        "calloutValue": [{
+          "fontSize": [{ "value": 32 }],
+          "color": [{ "solid": { "color": "#1B2A4A" } }]
+        }]
+      }
+    }
+  }
+}
