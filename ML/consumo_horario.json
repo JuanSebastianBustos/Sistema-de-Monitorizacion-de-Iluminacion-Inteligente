@@ -1,0 +1,194 @@
+[
+  {
+    "hora": 0,
+    "lux_promedio": 12.55,
+    "lux_optimo_promedio": 14.21,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0047,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 1,
+    "lux_promedio": 12.57,
+    "lux_optimo_promedio": 13.46,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0048,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 2,
+    "lux_promedio": 12.71,
+    "lux_optimo_promedio": 13.61,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0049,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 3,
+    "lux_promedio": 12.54,
+    "lux_optimo_promedio": 13.86,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0048,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 4,
+    "lux_promedio": 12.6,
+    "lux_optimo_promedio": 13.98,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0048,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 5,
+    "lux_promedio": 12.64,
+    "lux_optimo_promedio": 15.2,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0046,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 6,
+    "lux_promedio": 3801.82,
+    "lux_optimo_promedio": 3795.67,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.002,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 7,
+    "lux_promedio": 13140.62,
+    "lux_optimo_promedio": 13139.45,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0005,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 8,
+    "lux_promedio": 21747.62,
+    "lux_optimo_promedio": 21748.26,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0003,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 9,
+    "lux_promedio": 28719.21,
+    "lux_optimo_promedio": 28719.1,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0002,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 10,
+    "lux_promedio": 34011.89,
+    "lux_optimo_promedio": 34012.51,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0002,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 11,
+    "lux_promedio": 36699.89,
+    "lux_optimo_promedio": 36705.68,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0002,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 12,
+    "lux_promedio": 37042.31,
+    "lux_optimo_promedio": 37047.94,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0002,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 13,
+    "lux_promedio": 34914.43,
+    "lux_optimo_promedio": 34912.62,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0002,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 14,
+    "lux_promedio": 30402.26,
+    "lux_optimo_promedio": 30404.45,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0002,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 15,
+    "lux_promedio": 23722.37,
+    "lux_optimo_promedio": 23721.78,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0003,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 16,
+    "lux_promedio": 15362.37,
+    "lux_optimo_promedio": 15365.53,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0004,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 17,
+    "lux_promedio": 6089.42,
+    "lux_optimo_promedio": 6085.62,
+    "pct_encendidas": 0.0,
+    "ahorro_kwh_promedio": 0.0012,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 18,
+    "lux_promedio": 12.64,
+    "lux_optimo_promedio": 15.54,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0045,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 19,
+    "lux_promedio": 12.64,
+    "lux_optimo_promedio": 13.92,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0047,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 20,
+    "lux_promedio": 12.59,
+    "lux_optimo_promedio": 13.73,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0048,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 21,
+    "lux_promedio": 12.57,
+    "lux_optimo_promedio": 14.02,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0048,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 22,
+    "lux_promedio": 12.57,
+    "lux_optimo_promedio": 14.01,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0048,
+    "kwh_promedio": 0.0325
+  },
+  {
+    "hora": 23,
+    "lux_promedio": 12.54,
+    "lux_optimo_promedio": 13.31,
+    "pct_encendidas": 100.0,
+    "ahorro_kwh_promedio": 0.0047,
+    "kwh_promedio": 0.0325
+  }
+]
