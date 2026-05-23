@@ -1,0 +1,12 @@
+{
+  "total_kwh": 16864.5,
+  "costo_total_cop": 13491916.82,
+  "total_anomalias": 19899.0,
+  "pct_anomalias": 1.9899,
+  "ahorro_estimado_kwh": 2608.0079,
+  "pct_luminarias_encendidas": 46.57,
+  "sensores_activos": 500.0,
+  "zonas_monitoreadas": 20.0,
+  "lux_promedio_global": 11905.44,
+  "total_registros": 1000000.0
+}
