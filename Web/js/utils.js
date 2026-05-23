@@ -96,6 +96,8 @@ function inyectarNavbar() {
             <li><a href="tiempo.html">Temporal</a></li>
             <li><a href="tecnologia.html">Tecnología</a></li>
             <li><a href="politica.html">Política</a></li>
+            <li><a href="clima.html">Clima</a></li>
+            <li><a href="sensores.html">Sensores</a></li>
             <li><a href="modelo_ml.html">Modelo ML</a></li>
         </ul>
     </nav>`;
@@ -152,3 +154,6 @@ const OPCIONES_BASE_CHART = {
              grid:  { color: '#DEE2E6' } }
     }
 };
+
+// Auto-inyectar navbar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', inyectarNavbar);
