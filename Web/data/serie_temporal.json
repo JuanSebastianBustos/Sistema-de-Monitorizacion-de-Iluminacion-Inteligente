@@ -1,0 +1,270 @@
+{
+  "2023": [
+    {
+      "mes": 1,
+      "nombre_mes": "January",
+      "kwh_total": 710.67,
+      "costo_cop_total": 568643.04,
+      "total_anomalias": 821,
+      "ahorro_kwh_estimado": 107.3236,
+      "lux_promedio": 14339.29,
+      "pct_encendidas": 46.23,
+      "total_registros": 42563
+    },
+    {
+      "mes": 2,
+      "nombre_mes": "February",
+      "kwh_total": 645.33,
+      "costo_cop_total": 516559.5,
+      "total_anomalias": 750,
+      "ahorro_kwh_estimado": 99.2444,
+      "lux_promedio": 14486.19,
+      "pct_encendidas": 46.17,
+      "total_registros": 38663
+    },
+    {
+      "mes": 3,
+      "nombre_mes": "March",
+      "kwh_total": 705.33,
+      "costo_cop_total": 564162.27,
+      "total_anomalias": 832,
+      "ahorro_kwh_estimado": 105.6818,
+      "lux_promedio": 14280.83,
+      "pct_encendidas": 46.28,
+      "total_registros": 42157
+    },
+    {
+      "mes": 4,
+      "nombre_mes": "April",
+      "kwh_total": 685.2,
+      "costo_cop_total": 547484.0,
+      "total_anomalias": 792,
+      "ahorro_kwh_estimado": 113.0057,
+      "lux_promedio": 7122.74,
+      "pct_encendidas": 46.56,
+      "total_registros": 40533
+    },
+    {
+      "mes": 5,
+      "nombre_mes": "May",
+      "kwh_total": 723.27,
+      "costo_cop_total": 579145.69,
+      "total_anomalias": 884,
+      "ahorro_kwh_estimado": 116.9074,
+      "lux_promedio": 6996.17,
+      "pct_encendidas": 46.83,
+      "total_registros": 42559
+    },
+    {
+      "mes": 6,
+      "nombre_mes": "June",
+      "kwh_total": 694.58,
+      "costo_cop_total": 555776.28,
+      "total_anomalias": 846,
+      "ahorro_kwh_estimado": 105.0008,
+      "lux_promedio": 14292.64,
+      "pct_encendidas": 46.58,
+      "total_registros": 41161
+    },
+    {
+      "mes": 7,
+      "nombre_mes": "July",
+      "kwh_total": 716.6,
+      "costo_cop_total": 572836.27,
+      "total_anomalias": 850,
+      "ahorro_kwh_estimado": 108.6165,
+      "lux_promedio": 14236.49,
+      "pct_encendidas": 46.93,
+      "total_registros": 42245
+    },
+    {
+      "mes": 8,
+      "nombre_mes": "August",
+      "kwh_total": 712.63,
+      "costo_cop_total": 569639.54,
+      "total_anomalias": 843,
+      "ahorro_kwh_estimado": 107.5703,
+      "lux_promedio": 14469.14,
+      "pct_encendidas": 46.33,
+      "total_registros": 42436
+    },
+    {
+      "mes": 9,
+      "nombre_mes": "September",
+      "kwh_total": 693.43,
+      "costo_cop_total": 554800.06,
+      "total_anomalias": 799,
+      "ahorro_kwh_estimado": 104.936,
+      "lux_promedio": 14302.18,
+      "pct_encendidas": 46.83,
+      "total_registros": 41183
+    },
+    {
+      "mes": 10,
+      "nombre_mes": "October",
+      "kwh_total": 727.55,
+      "costo_cop_total": 582500.71,
+      "total_anomalias": 840,
+      "ahorro_kwh_estimado": 115.3024,
+      "lux_promedio": 7177.48,
+      "pct_encendidas": 46.87,
+      "total_registros": 42593
+    },
+    {
+      "mes": 11,
+      "nombre_mes": "November",
+      "kwh_total": 691.65,
+      "costo_cop_total": 553423.73,
+      "total_anomalias": 820,
+      "ahorro_kwh_estimado": 113.6569,
+      "lux_promedio": 7033.13,
+      "pct_encendidas": 46.56,
+      "total_registros": 41059
+    },
+    {
+      "mes": 12,
+      "nombre_mes": "December",
+      "kwh_total": 714.58,
+      "costo_cop_total": 571785.69,
+      "total_anomalias": 827,
+      "ahorro_kwh_estimado": 108.0147,
+      "lux_promedio": 14211.65,
+      "pct_encendidas": 46.6,
+      "total_registros": 42262
+    }
+  ],
+  "2024": [
+    {
+      "mes": 1,
+      "nombre_mes": "January",
+      "kwh_total": 707.85,
+      "costo_cop_total": 565615.18,
+      "total_anomalias": 809,
+      "ahorro_kwh_estimado": 105.9678,
+      "lux_promedio": 14270.65,
+      "pct_encendidas": 46.35,
+      "total_registros": 42137
+    },
+    {
+      "mes": 2,
+      "nombre_mes": "February",
+      "kwh_total": 669.54,
+      "costo_cop_total": 535536.69,
+      "total_anomalias": 764,
+      "ahorro_kwh_estimado": 101.515,
+      "lux_promedio": 14237.28,
+      "pct_encendidas": 46.64,
+      "total_registros": 39831
+    },
+    {
+      "mes": 3,
+      "nombre_mes": "March",
+      "kwh_total": 714.07,
+      "costo_cop_total": 572001.56,
+      "total_anomalias": 898,
+      "ahorro_kwh_estimado": 107.329,
+      "lux_promedio": 14295.67,
+      "pct_encendidas": 46.65,
+      "total_registros": 42317
+    },
+    {
+      "mes": 4,
+      "nombre_mes": "April",
+      "kwh_total": 693.49,
+      "costo_cop_total": 555001.48,
+      "total_anomalias": 821,
+      "ahorro_kwh_estimado": 113.2912,
+      "lux_promedio": 7205.05,
+      "pct_encendidas": 46.51,
+      "total_registros": 41138
+    },
+    {
+      "mes": 5,
+      "nombre_mes": "May",
+      "kwh_total": 710.05,
+      "costo_cop_total": 567864.13,
+      "total_anomalias": 897,
+      "ahorro_kwh_estimado": 114.2366,
+      "lux_promedio": 7086.79,
+      "pct_encendidas": 46.28,
+      "total_registros": 42198
+    },
+    {
+      "mes": 6,
+      "nombre_mes": "June",
+      "kwh_total": 701.57,
+      "costo_cop_total": 561292.44,
+      "total_anomalias": 838,
+      "ahorro_kwh_estimado": 105.7535,
+      "lux_promedio": 14404.98,
+      "pct_encendidas": 46.71,
+      "total_registros": 41356
+    },
+    {
+      "mes": 7,
+      "nombre_mes": "July",
+      "kwh_total": 715.43,
+      "costo_cop_total": 572609.34,
+      "total_anomalias": 853,
+      "ahorro_kwh_estimado": 108.5739,
+      "lux_promedio": 14365.67,
+      "pct_encendidas": 46.83,
+      "total_registros": 42268
+    },
+    {
+      "mes": 8,
+      "nombre_mes": "August",
+      "kwh_total": 718.97,
+      "costo_cop_total": 575859.51,
+      "total_anomalias": 834,
+      "ahorro_kwh_estimado": 106.8085,
+      "lux_promedio": 14211.45,
+      "pct_encendidas": 46.94,
+      "total_registros": 42238
+    },
+    {
+      "mes": 9,
+      "nombre_mes": "September",
+      "kwh_total": 693.78,
+      "costo_cop_total": 554514.07,
+      "total_anomalias": 812,
+      "ahorro_kwh_estimado": 103.5385,
+      "lux_promedio": 14165.21,
+      "pct_encendidas": 46.7,
+      "total_registros": 41061
+    },
+    {
+      "mes": 10,
+      "nombre_mes": "October",
+      "kwh_total": 716.41,
+      "costo_cop_total": 573205.24,
+      "total_anomalias": 839,
+      "ahorro_kwh_estimado": 115.9153,
+      "lux_promedio": 7177.35,
+      "pct_encendidas": 46.53,
+      "total_registros": 42412
+    },
+    {
+      "mes": 11,
+      "nombre_mes": "November",
+      "kwh_total": 683.45,
+      "costo_cop_total": 546434.28,
+      "total_anomalias": 830,
+      "ahorro_kwh_estimado": 111.6906,
+      "lux_promedio": 7036.74,
+      "pct_encendidas": 46.38,
+      "total_registros": 40823
+    },
+    {
+      "mes": 12,
+      "nombre_mes": "December",
+      "kwh_total": 719.08,
+      "costo_cop_total": 575226.12,
+      "total_anomalias": 800,
+      "ahorro_kwh_estimado": 108.1275,
+      "lux_promedio": 14329.33,
+      "pct_encendidas": 46.34,
+      "total_registros": 42807
+    }
+  ]
+}
