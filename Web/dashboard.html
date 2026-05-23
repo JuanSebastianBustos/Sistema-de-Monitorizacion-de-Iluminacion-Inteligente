@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Iluminación Bogotá</title>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+    <!-- Estilos propios -->
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/utils.js" defer></script>
+
+    <style>
+        /* ── Layout principal del dashboard ── */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .dash-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* ── Mapa + panel lateral ── */
+        .mapa-layout {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        #mapa-zonas {
+            height: 440px;
+            border-radius: var(--radio-tarjeta);
+            z-index: 1;
+        }
+
+        /* ── Tabla compacta ── */
+        .tabla-compacta td,
+        .tabla-compacta th {
+            padding: 0.45rem 0.6rem;
+            font-size: 0.78rem;
+        }
+        .tabla-scroll {
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        /* ── Banner de filtros activos ── */
+        .filtros-activos {
+            display: none;
+            background: #EBF3FB;
+            border: 1px solid var(--azul-claro);
+            border-radius: 4px;
+            padding: 0.4rem 0.85rem;
+            font-size: 0.8rem;
+            color: var(--azul-oscuro);
+            margin-bottom: 1rem;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .filtros-activos.visible { display: flex; }
+        .filtros-activos button {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--azul-medio);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* ── KPI variación ── */
+        .kpi-variacion {
+            font-size: 0.75rem;
+            margin-top: 0.3rem;
+        }
+        .kpi-variacion.sube { color: var(--rojo); }
+        .kpi-variacion.baja { color: var(--verde); }
+        .kpi-variacion.neutro { color: var(--texto-suave); }
+
+        /* ── Gráfico canvas ── */
+        .chart-wrap { position: relative; height: 280px; }
+        .chart-wrap-sm { position: relative; height: 220px; }
+
+        /* ── Leyenda mapa ── */
+        .leyenda-mapa {
+            background: var(--blanco);
+            border-radius: 6px;
+            padding: 0.6rem 0.85rem;
+            font-size: 0.75rem;
+            box-shadow: var(--sombra);
+            line-height: 1.8;
+        }
+        .leyenda-item { display: flex; align-items: center; gap: 0.4rem; }
+        .leyenda-color {
+            width: 12px; height: 12px;
+            border-radius: 2px; flex-shrink: 0;
+        }
+
+        /* ── Métricas de zona (panel derecho del mapa) ── */
+        .zona-info {
+            font-size: 0.82rem;
+            color: var(--texto-suave);
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+        .zona-info-dato {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.35rem 0;
+            border-bottom: 1px solid var(--gris-borde);
+            font-size: 0.82rem;
+        }
+        .zona-info-dato:last-child { border-bottom: none; }
+        .zona-info-label { color: var(--texto-suave); }
+        .zona-info-val { font-weight: 600; color: var(--azul-oscuro); }
+        .zona-nombre-titulo {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--azul-oscuro);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--azul-claro);
+        }
+
+        @media (max-width: 900px) {
+            .mapa-layout { grid-template-columns: 1fr; }
+            .dash-grid, .dash-grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <script>inyectarNavbar();</script>
+
+    <div class="contenido-principal">
+        <div style="margin-bottom:1.25rem;">
+            <h1 class="pagina-titulo">📊 Dashboard General</h1>
+            <p class="pagina-subtitulo">Visión consolidada del sistema de alumbrado público — 20 localidades · 500 sensores · 1M registros</p>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="filtros-bar">
+            <div class="filtro-grupo">
+                <label>Localidad</label>
+                <select id="filtro-zona">
+                    <option value="">Todas las localidades</option>
+                </select>
+            </div>
+            <div class="filtro-grupo">
+                <label>Período</label>
+                <select id="filtro-periodo">
+                    <option value="">Todos los períodos</option>
+                    <option value="nocturno">Nocturno (18:00–05:59)</option>
+                    <option value="diurno">Diurno (06:00–17:59)</option>
+                </select>
+            </div>
+            <button class="btn-aplicar" onclick="aplicarFiltros()">Aplicar</button>
+            <button class="btn-limpiar" onclick="limpiarFiltros()">Limpiar</button>
+        </div>
+
+        <!-- Banner filtros activos -->
+        <div class="filtros-activos" id="banner-filtros">
+            <span>🔍</span>
+            <span id="texto-filtros"></span>
+            <button onclick="limpiarFiltros()">✕ Quitar filtros</button>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid" id="kpi-grid">
+            <div class="kpi-card azul">
+                <div class="kpi-etiqueta">Total kWh consumido</div>
+                <div class="kpi-valor" id="kpi-kwh"><div class="spinner" style="margin:0;width:20px;height:20px;border-width:2px;"></div></div>
+                <div class="kpi-unidad">kWh en el período</div>
+                <div class="kpi-variacion neutro" id="kpi-kwh-var">—</div>
+            </div>
+            <div class="kpi-card rojo">
+                <div class="kpi-etiqueta">Costo total estimado</div>
+                <div class="kpi-valor" id="kpi-cop">—</div>
+                <div class="kpi-unidad">COP facturado</div>
+                <div class="kpi-variacion neutro" id="kpi-cop-var">—</div>
+            </div>
+            <div class="kpi-card amarillo">
+                <div class="kpi-etiqueta">Anomalías detectadas</div>
+                <div class="kpi-valor" id="kpi-anomalias">—</div>
+                <div class="kpi-unidad">eventos registrados</div>
+                <div class="kpi-variacion neutro" id="kpi-anom-var">—</div>
+            </div>
+            <div class="kpi-card verde">
+                <div class="kpi-etiqueta">Ahorro estimado</div>
+                <div class="kpi-valor" id="kpi-ahorro">—</div>
+                <div class="kpi-unidad">kWh potencial de ahorro</div>
+                <div class="kpi-variacion baja" id="kpi-ahorro-var">—</div>
+            </div>
+        </div>
+
+        <!-- MAPA + PANEL DE ZONA -->
+        <div class="mapa-layout">
+            <div class="grafico-card" style="padding:1rem;">
+                <div class="grafico-titulo">🗺️ Consumo por Localidad — kWh Total
+                    <span style="float:right;font-size:0.75rem;font-weight:400;color:var(--texto-suave);">Clic en zona para detalle</span>
+                </div>
+                <div id="mapa-zonas"></div>
+            </div>
+
+            <div class="grafico-card">
+                <div class="grafico-titulo">📍 Detalle de Localidad</div>
+                <div id="zona-detalle">
+                    <div class="zona-info">
+                        <div style="font-size:2rem;margin-bottom:0.5rem;">🖱️</div>
+                        Haz clic en una localidad del mapa para ver sus métricas
+                    </div>
+                </div>
+
+                <!-- Leyenda -->
+                <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--gris-borde);">
+                    <div style="font-size:0.72rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;margin-bottom:0.4rem;">Escala de consumo</div>
+                    <div class="leyenda-mapa">
+                        <div class="leyenda-item"><div class="leyenda-color" style="background:#1A7A4A;"></div> Bajo consumo</div>
+                        <div class="leyenda-item"><div class="leyenda-color" style="background:#F4A20D;"></div> Consumo medio</div>
+                        <div class="leyenda-item"><div class="leyenda-color" style="background:#C0392B;"></div> Alto consumo</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICOS PRINCIPALES -->
+        <div class="dash-grid">
+            <!-- Gráfico horario -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">⏱️ Lux Promedio por Hora del Día</div>
+                <div class="chart-wrap">
+                    <canvas id="grafico-horario"></canvas>
+                </div>
+            </div>
+
+            <!-- Top zonas -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">🏆 Top 10 Zonas por Consumo Total (kWh)</div>
+                <div class="chart-wrap">
+                    <canvas id="grafico-top-zonas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILA INFERIOR -->
+        <div class="dash-grid">
+            <!-- % luminarias encendidas por hora -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">💡 % Luminarias Encendidas por Hora</div>
+                <div class="chart-wrap-sm">
+                    <canvas id="grafico-encendidas"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabla top zonas -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">📋 Resumen por Localidad</div>
+                <div class="tabla-scroll">
+                    <div class="tabla-container">
+                        <table class="tabla-datos tabla-compacta" id="tabla-zonas">
+                            <thead>
+                                <tr>
+                                    <th onclick="ordenarTabla('zona_nombre')">Localidad ↕</th>
+                                    <th onclick="ordenarTabla('kwh_total')">kWh ↕</th>
+                                    <th onclick="ordenarTabla('anomalias')">Anomalías ↕</th>
+                                    <th onclick="ordenarTabla('ahorro_kwh_estimado')">Ahorro ↕</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-zonas-body">
+                                <tr><td colspan="4"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /contenido-principal -->
+
+    <footer style="background:var(--azul-oscuro);color:rgba(255,255,255,0.5);text-align:center;padding:1.25rem;font-size:0.78rem;margin-top:1rem;">
+        Sistema de Monitorización de Iluminación Inteligente — Bogotá D.C. · ODS 7 · ODS 11 · ODS 13
+    </footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  Estado global
+// ══════════════════════════════════════════════════════════════
+let datosZonas    = [];
+let datosHorario  = [];
+let mapaLeaflet   = null;
+let geojsonLayer  = null;
+let chartHorario  = null;
+let chartTopZonas = null;
+let chartEncendidas = null;
+let ordenTabla    = { col: 'kwh_total', asc: false };
+
+// ══════════════════════════════════════════════════════════════
+//  Inicialización
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+    [datosZonas, datosHorario] = await Promise.all([
+        cargarJSON('resumen_zonas.json'),
+        cargarJSON('consumo_horario.json'),
+    ]);
+
+    if (!datosZonas || !datosHorario) {
+        mostrarError('kpi-grid', 'No se pudieron cargar los datos. Verifica que los archivos JSON estén en /data/');
+        return;
+    }
+
+    poblarFiltroZonas();
+    renderKPIs(datosZonas, datosHorario);
+    await iniciarMapa();
+    renderGraficoHorario(datosHorario);
+    renderTopZonas(datosZonas);
+    renderEncendidas(datosHorario);
+    renderTabla(datosZonas);
+});
+
+// ══════════════════════════════════════════════════════════════
+//  Poblar filtro de zonas
+// ══════════════════════════════════════════════════════════════
+function poblarFiltroZonas() {
+    const sel = document.getElementById('filtro-zona');
+    datosZonas
+        .slice()
+        .sort((a, b) => a.zona_nombre.localeCompare(b.zona_nombre))
+        .forEach(z => {
+            const opt = document.createElement('option');
+            opt.value = z.zona_id;
+            opt.textContent = z.zona_nombre;
+            sel.appendChild(opt);
+        });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  KPIs
+// ══════════════════════════════════════════════════════════════
+function renderKPIs(zonas, horario) {
+    const totalKwh    = zonas.reduce((s, z) => s + z.kwh_total, 0);
+    const totalCop    = zonas.reduce((s, z) => s + z.costo_cop_total, 0);
+    const totalAnom   = zonas.reduce((s, z) => s + z.anomalias, 0);
+    const totalAhorro = zonas.reduce((s, z) => s + z.ahorro_kwh_estimado, 0);
+
+    document.getElementById('kpi-kwh').textContent       = fmtNum(totalKwh, 0);
+    document.getElementById('kpi-cop').textContent       = fmtCOP(totalCop);
+    document.getElementById('kpi-anomalias').textContent = fmtNum(totalAnom, 0);
+    document.getElementById('kpi-ahorro').textContent    = fmtNum(totalAhorro, 0);
+
+    // Variaciones
+    const pctAhorro = totalKwh > 0 ? (totalAhorro / totalKwh * 100) : 0;
+    document.getElementById('kpi-ahorro-var').textContent  = `↓ ${fmtPct(pctAhorro)} del consumo total`;
+    document.getElementById('kpi-kwh-var').textContent     = `${zonas.length} localidades monitoreadas`;
+    document.getElementById('kpi-cop-var').textContent     = `$ ${fmtNum(totalCop / totalKwh, 2)} COP/kWh promedio`;
+    document.getElementById('kpi-anom-var').textContent    = `${fmtPct(totalAnom / zonas.reduce((s,z)=>s+z.total_registros,0)*100)} tasa de anomalía`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Mapa Leaflet
+// ══════════════════════════════════════════════════════════════
+async function iniciarMapa() {
+    mapaLeaflet = L.map('mapa-zonas', { zoomControl: true }).setView([4.65, -74.09], 10);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO',
+        maxZoom: 18
+    }).addTo(mapaLeaflet);
+
+    // Intentar cargar GeoJSON
+    try {
+        const geojson = await cargarJSON('bta_localidades.json');
+        if (geojson) dibujarChoropleth(geojson);
+    } catch(e) {
+        // Sin GeoJSON: dibujar marcadores de círculo por zona
+        dibujarMarcadores();
+    }
+}
+
+function colorPorKwh(kwh) {
+    const max = Math.max(...datosZonas.map(z => z.kwh_total));
+    const min = Math.min(...datosZonas.map(z => z.kwh_total));
+    return escalaColor(kwh, min, max);
+}
+
+function dibujarChoropleth(geojson) {
+    // Mapeo nombre → datos zona (normalizar nombres)
+    const zonaMap = {};
+    datosZonas.forEach(z => {
+        zonaMap[z.zona_nombre.toUpperCase().trim()] = z;
+    });
+
+    geojsonLayer = L.geoJSON(geojson, {
+        style: feature => {
+            // Intentar distintas propiedades de nombre según el GeoJSON
+            const nombre = (
+                feature.properties?.NOMBRE ||
+                feature.properties?.nombre ||
+                feature.properties?.LocNombre ||
+                feature.properties?.name || ''
+            ).toUpperCase().trim();
+
+            const zona = zonaMap[nombre];
+            const color = zona ? colorPorKwh(zona.kwh_total) : '#CCCCCC';
+            return {
+                fillColor: color,
+                fillOpacity: 0.75,
+                color: '#FFFFFF',
+                weight: 1.5
+            };
+        },
+        onEachFeature: (feature, layer) => {
+            const nombre = (
+                feature.properties?.NOMBRE ||
+                feature.properties?.nombre ||
+                feature.properties?.LocNombre ||
+                feature.properties?.name || ''
+            ).toUpperCase().trim();
+            const zona = zonaMap[nombre];
+
+            if (zona) {
+                layer.on('click', () => mostrarDetalleZona(zona));
+                layer.on('mouseover', function() {
+                    this.setStyle({ weight: 3, fillOpacity: 0.9 });
+                });
+                layer.on('mouseout', function() {
+                    geojsonLayer.resetStyle(this);
+                });
+                layer.bindTooltip(zona.zona_nombre, {
+                    permanent: false, direction: 'center',
+                    className: 'leaflet-tooltip'
+                });
+            }
+        }
+    }).addTo(mapaLeaflet);
+
+    mapaLeaflet.fitBounds(geojsonLayer.getBounds(), { padding: [10, 10] });
+}
+
+function dibujarMarcadores() {
+    // Fallback si no hay GeoJSON: coordenadas aproximadas de Bogotá
+    const coordsBogota = {
+        'Usaquén':       [4.7039, -74.0317],
+        'Chapinero':     [4.6495, -74.0628],
+        'Santa Fe':      [4.6000, -74.0800],
+        'San Cristóbal': [4.5605, -74.0900],
+        'Usme':          [4.4808, -74.1268],
+        'Tunjuelito':    [4.5742, -74.1287],
+        'Bosa':          [4.6200, -74.1940],
+        'Kennedy':       [4.6285, -74.1530],
+        'Fontibón':      [4.6721, -74.1465],
+        'Engativá':      [4.7050, -74.1140],
+        'Suba':          [4.7408, -74.0840],
+        'Barrios Unidos':[4.6840, -74.0750],
+        'Teusaquillo':   [4.6440, -74.0770],
+        'Los Mártires':  [4.6090, -74.0930],
+        'Antonio Nariño':[4.5820, -74.1000],
+        'Puente Aranda': [4.6260, -74.1180],
+        'La Candelaria': [4.5970, -74.0740],
+        'Rafael Uribe':  [4.5563, -74.1060],
+        'Ciudad Bolívar':[4.4925, -74.1495],
+        'Sumapaz':       [4.2000, -74.2000],
+    };
+
+    datosZonas.forEach(zona => {
+        const coord = coordsBogota[zona.zona_nombre];
+        if (!coord) return;
+        const radio = 800 + (zona.kwh_total / 500);
+        L.circleMarker(coord, {
+            radius: Math.min(Math.max(radio / 500, 8), 28),
+            fillColor: colorPorKwh(zona.kwh_total),
+            fillOpacity: 0.8,
+            color: '#FFFFFF',
+            weight: 2
+        })
+        .addTo(mapaLeaflet)
+        .on('click', () => mostrarDetalleZona(zona))
+        .bindTooltip(zona.zona_nombre);
+    });
+}
+
+function mostrarDetalleZona(zona) {
+    const el = document.getElementById('zona-detalle');
+    const pctAhorro = zona.kwh_total > 0
+        ? (zona.ahorro_kwh_estimado / zona.kwh_total * 100).toFixed(1)
+        : '0.0';
+
+    el.innerHTML = `
+        <div class="zona-nombre-titulo">📍 ${zona.zona_nombre}</div>
+        <div class="zona-info-dato">
+            <span class="zona-info-label">kWh Total</span>
+            <span class="zona-info-val">${fmtNum(zona.kwh_total, 2)}</span>
+        </div>
+        <div class="zona-info-dato">
+            <span class="zona-info-label">Costo COP</span>
+            <span class="zona-info-val">${fmtCOP(zona.costo_cop_total)}</span>
+        </div>
+        <div class="zona-info-dato">
+            <span class="zona-info-label">Lux promedio</span>
+            <span class="zona-info-val">${fmtLux(zona.lux_promedio)}</span>
+        </div>
+        <div class="zona-info-dato">
+            <span class="zona-info-label">Lux óptimo</span>
+            <span class="zona-info-val">${fmtLux(zona.lux_optimo_promedio)}</span>
+        </div>
+        <div class="zona-info-dato">
+            <span class="zona-info-label">Anomalías</span>
+            <span class="zona-info-val" style="color:var(--rojo);">${fmtNum(zona.anomalias, 0)}</span>
+        </div>
+        <div class="zona-info-dato">
+            <span class="zona-info-label">Registros</span>
+            <span class="zona-info-val">${fmtNum(zona.total_registros, 0)}</span>
+        </div>
+        <div class="zona-info-dato">
+            <span class="zona-info-label">Ahorro estimado</span>
+            <span class="zona-info-val" style="color:var(--verde);">${fmtNum(zona.ahorro_kwh_estimado, 2)} kWh (${pctAhorro}%)</span>
+        </div>
+    `;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Gráfico Horario (lux real vs óptimo)
+// ══════════════════════════════════════════════════════════════
+function renderGraficoHorario(horario) {
+    const ctx = document.getElementById('grafico-horario').getContext('2d');
+    if (chartHorario) chartHorario.destroy();
+
+    const labels  = horario.map(h => `${String(h.hora).padStart(2,'0')}:00`);
+    const luxReal  = horario.map(h => h.lux_promedio);
+    const luxOpt   = horario.map(h => h.lux_optimo_promedio);
+
+    chartHorario = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Lux real promedio',
+                    data: luxReal,
+                    borderColor: PALETA[0],
+                    backgroundColor: PALETA[0] + '22',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 2,
+                },
+                {
+                    label: 'Lux óptimo (ML)',
+                    data: luxOpt,
+                    borderColor: PALETA[1],
+                    borderWidth: 2,
+                    borderDash: [5, 4],
+                    fill: false,
+                    tension: 0.35,
+                    pointRadius: 0,
+                }
+            ]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            plugins: {
+                ...OPCIONES_BASE_CHART.plugins,
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.dataset.label}: ${fmtLux(ctx.raw)}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ...OPCIONES_BASE_CHART.scales.x,
+                    ticks: {
+                        ...OPCIONES_BASE_CHART.scales.x.ticks,
+                        maxTicksLimit: 12
+                    }
+                },
+                y: {
+                    ...OPCIONES_BASE_CHART.scales.y,
+                    ticks: {
+                        callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Top 10 zonas (barras horizontales)
+// ══════════════════════════════════════════════════════════════
+function renderTopZonas(zonas) {
+    const ctx = document.getElementById('grafico-top-zonas').getContext('2d');
+    if (chartTopZonas) chartTopZonas.destroy();
+
+    const top10 = zonas
+        .slice()
+        .sort((a, b) => b.kwh_total - a.kwh_total)
+        .slice(0, 10);
+
+    const max = top10[0]?.kwh_total || 1;
+    const min = top10[top10.length - 1]?.kwh_total || 0;
+
+    chartTopZonas = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: top10.map(z => z.zona_nombre),
+            datasets: [{
+                label: 'kWh Total',
+                data: top10.map(z => z.kwh_total),
+                backgroundColor: top10.map(z => escalaColor(z.kwh_total, min, max) + 'CC'),
+                borderColor:     top10.map(z => escalaColor(z.kwh_total, min, max)),
+                borderWidth: 1,
+                borderRadius: 3,
+            }]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${fmtNum(ctx.raw, 2)} kWh`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ...OPCIONES_BASE_CHART.scales.x,
+                    ticks: { callback: v => fmtNum(v, 0) }
+                },
+                y: { ...OPCIONES_BASE_CHART.scales.y }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  % Luminarias encendidas por hora
+// ══════════════════════════════════════════════════════════════
+function renderEncendidas(horario) {
+    const ctx = document.getElementById('grafico-encendidas').getContext('2d');
+    if (chartEncendidas) chartEncendidas.destroy();
+
+    const labels = horario.map(h => `${String(h.hora).padStart(2,'0')}h`);
+    const pct    = horario.map(h => h.pct_encendidas);
+
+    // Color: azul si encendidas, gris si apagadas
+    const colores = pct.map(v =>
+        v > 50 ? PALETA[0] + 'BB' : '#DEE2E6'
+    );
+
+    chartEncendidas = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: '% Encendidas',
+                data: pct,
+                backgroundColor: colores,
+                borderRadius: 2,
+            }]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.raw.toFixed(1)}% encendidas`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ...OPCIONES_BASE_CHART.scales.x,
+                    ticks: { maxTicksLimit: 12 }
+                },
+                y: {
+                    ...OPCIONES_BASE_CHART.scales.y,
+                    min: 0, max: 100,
+                    ticks: { callback: v => v + '%' }
+                }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Tabla de zonas ordenable
+// ══════════════════════════════════════════════════════════════
+function renderTabla(zonas) {
+    const tbody = document.getElementById('tabla-zonas-body');
+    const sorted = zonas.slice().sort((a, b) => {
+        const va = a[ordenTabla.col];
+        const vb = b[ordenTabla.col];
+        if (typeof va === 'string') return ordenTabla.asc
+            ? va.localeCompare(vb) : vb.localeCompare(va);
+        return ordenTabla.asc ? va - vb : vb - va;
+    });
+
+    tbody.innerHTML = sorted.map(z => `
+        <tr style="cursor:pointer;" onclick="resaltarZona(${z.zona_id})">
+            <td style="font-weight:600;">${z.zona_nombre}</td>
+            <td>${fmtNum(z.kwh_total, 0)}</td>
+            <td>${z.anomalias > 100
+                ? `<span class="badge-critico">${fmtNum(z.anomalias,0)}</span>`
+                : z.anomalias > 30
+                ? `<span class="badge-alerta">${fmtNum(z.anomalias,0)}</span>`
+                : `<span class="badge-normal">${fmtNum(z.anomalias,0)}</span>`
+            }</td>
+            <td style="color:var(--verde);font-weight:600;">${fmtNum(z.ahorro_kwh_estimado, 2)}</td>
+        </tr>
+    `).join('');
+}
+
+function ordenarTabla(col) {
+    if (ordenTabla.col === col) {
+        ordenTabla.asc = !ordenTabla.asc;
+    } else {
+        ordenTabla.col = col;
+        ordenTabla.asc = false;
+    }
+    renderTabla(datosZonas);
+}
+
+function resaltarZona(zonaId) {
+    const zona = datosZonas.find(z => z.zona_id === zonaId);
+    if (zona) mostrarDetalleZona(zona);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Filtros
+// ══════════════════════════════════════════════════════════════
+function aplicarFiltros() {
+    const zonaId  = document.getElementById('filtro-zona').value;
+    const periodo = document.getElementById('filtro-periodo').value;
+
+    // Filtrar zonas
+    let zonasFilt = datosZonas;
+    if (zonaId) {
+        zonasFilt = datosZonas.filter(z => String(z.zona_id) === String(zonaId));
+    }
+
+    // Filtrar horario
+    let horarioFilt = datosHorario;
+    if (periodo === 'nocturno') {
+        horarioFilt = datosHorario.filter(h => h.hora < 6 || h.hora >= 18);
+    } else if (periodo === 'diurno') {
+        horarioFilt = datosHorario.filter(h => h.hora >= 6 && h.hora < 18);
+    }
+
+    // Actualizar banner
+    const partes = [];
+    if (zonaId) {
+        const z = datosZonas.find(z => String(z.zona_id) === String(zonaId));
+        if (z) partes.push(`Zona: ${z.zona_nombre}`);
+    }
+    if (periodo) partes.push(`Período: ${periodo === 'nocturno' ? 'Nocturno' : 'Diurno'}`);
+
+    const banner = document.getElementById('banner-filtros');
+    if (partes.length > 0) {
+        document.getElementById('texto-filtros').textContent = partes.join(' · ');
+        banner.classList.add('visible');
+    } else {
+        banner.classList.remove('visible');
+    }
+
+    // Re-renderizar
+    renderKPIs(zonasFilt, horarioFilt);
+    renderGraficoHorario(horarioFilt);
+    renderTopZonas(zonasFilt);
+    renderEncendidas(horarioFilt);
+    renderTabla(zonasFilt);
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtro-zona').value    = '';
+    document.getElementById('filtro-periodo').value = '';
+    document.getElementById('banner-filtros').classList.remove('visible');
+    renderKPIs(datosZonas, datosHorario);
+    renderGraficoHorario(datosHorario);
+    renderTopZonas(datosZonas);
+    renderEncendidas(datosHorario);
+    renderTabla(datosZonas);
+}
+</script>
+</body>
+</html>

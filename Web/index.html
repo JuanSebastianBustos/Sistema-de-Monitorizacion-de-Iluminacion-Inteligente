@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iluminación Inteligente Bogotá</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/utils.js" defer></script>
+    <style>
+        .hero {
+            background: linear-gradient(135deg, var(--azul-oscuro) 0%, var(--azul-medio) 100%);
+            color: var(--blanco);
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+        .hero h1 { font-size: 2.4rem; font-weight: 800; margin-bottom: 0.75rem; }
+        .hero p  { font-size: 1.1rem; opacity: 0.85; margin-bottom: 2rem; max-width: 600px; margin-inline: auto; }
+        .ods-badges { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2.5rem; }
+        .ods-badge {
+            padding: 0.4rem 1rem; border-radius: 20px;
+            font-size: 0.85rem; font-weight: 700;
+        }
+        .ods7  { background: #FDB813; color: #000; }
+        .ods11 { background: #FD6925; color: #fff; }
+        .ods13 { background: #3F7E44; color: #fff; }
+        .btn-hero {
+            background: var(--blanco); color: var(--azul-oscuro);
+            padding: 0.75rem 2rem; border-radius: 6px;
+            font-weight: 700; font-size: 1rem;
+            text-decoration: none; display: inline-block;
+            transition: var(--transicion);
+        }
+        .btn-hero:hover { background: var(--azul-claro); color: var(--blanco); }
+
+        .seccion { padding: 3rem 2rem; max-width: 1200px; margin: 0 auto; }
+        .seccion-titulo {
+            font-size: 1.4rem; font-weight: 700;
+            color: var(--azul-oscuro); text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        /* Escala del sistema */
+        .escala-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem; margin-bottom: 1rem;
+        }
+        .escala-card {
+            background: var(--blanco); border-radius: var(--radio-tarjeta);
+            padding: 2rem 1rem; text-align: center;
+            box-shadow: var(--sombra); border-top: 4px solid var(--azul-claro);
+        }
+        .escala-numero { font-size: 2.2rem; font-weight: 800; color: var(--azul-oscuro); }
+        .escala-etiqueta { font-size: 0.85rem; color: var(--texto-suave); margin-top: 0.25rem; }
+
+        /* Flujo del sistema */
+        .flujo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .flujo-paso {
+            background: var(--blanco); border-radius: var(--radio-tarjeta);
+            padding: 1.5rem; text-align: center; box-shadow: var(--sombra);
+            position: relative;
+        }
+        .flujo-numero {
+            width: 32px; height: 32px; background: var(--azul-medio);
+            color: var(--blanco); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.9rem; margin: 0 auto 0.75rem;
+        }
+        .flujo-icono { font-size: 2rem; margin-bottom: 0.5rem; }
+        .flujo-titulo { font-weight: 700; color: var(--azul-oscuro); margin-bottom: 0.35rem; }
+        .flujo-desc { font-size: 0.82rem; color: var(--texto-suave); }
+
+        /* Tecnologías */
+        .tech-grid {
+            display: flex; flex-wrap: wrap;
+            gap: 1rem; justify-content: center;
+        }
+        .tech-badge {
+            background: var(--blanco); border: 2px solid var(--gris-borde);
+            border-radius: 8px; padding: 0.6rem 1.2rem;
+            font-weight: 600; font-size: 0.85rem; color: var(--azul-oscuro);
+            box-shadow: var(--sombra);
+        }
+
+        /* Equipo */
+        .equipo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        .equipo-card {
+            background: var(--blanco); border-radius: var(--radio-tarjeta);
+            padding: 1.5rem; text-align: center; box-shadow: var(--sombra);
+        }
+        .equipo-avatar {
+            width: 56px; height: 56px; border-radius: 50%;
+            background: var(--azul-medio); color: var(--blanco);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; font-weight: 700; margin: 0 auto 0.75rem;
+        }
+        .equipo-nombre { font-weight: 700; color: var(--azul-oscuro); font-size: 0.9rem; }
+        .equipo-rol { font-size: 0.78rem; color: var(--texto-suave); margin-top: 0.2rem; }
+
+        footer {
+            background: var(--azul-oscuro); color: rgba(255,255,255,0.6);
+            text-align: center; padding: 1.5rem;
+            font-size: 0.82rem; margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <script>inyectarNavbar();</script>
+
+    <!-- HERO -->
+    <section class="hero">
+        <h1>🌆 Iluminación Inteligente<br>Bogotá D.C.</h1>
+        <p>Sistema de análisis Big Data para la red de alumbrado público — identificación de patrones de consumo, detección de anomalías y recomendaciones de política por localidad.</p>
+        <div class="ods-badges">
+            <span class="ods-badge ods7">⚡ ODS 7 — Energía Asequible</span>
+            <span class="ods-badge ods11">🏙️ ODS 11 — Ciudades Sostenibles</span>
+            <span class="ods-badge ods13">🌿 ODS 13 — Acción Climática</span>
+        </div>
+        <a href="dashboard.html" class="btn-hero">Ver Dashboard →</a>
+    </section>
+
+    <!-- ESCALA DEL SISTEMA -->
+    <section class="seccion">
+        <h2 class="seccion-titulo">Escala del Sistema</h2>
+        <div class="escala-grid">
+            <div class="escala-card">
+                <div class="escala-numero">500</div>
+                <div class="escala-etiqueta">Sensores desplegados</div>
+            </div>
+            <div class="escala-card">
+                <div class="escala-numero">1M</div>
+                <div class="escala-etiqueta">Lecturas registradas</div>
+            </div>
+            <div class="escala-card">
+                <div class="escala-numero">20</div>
+                <div class="escala-etiqueta">Localidades de Bogotá</div>
+            </div>
+            <div class="escala-card">
+                <div class="escala-numero">2 años</div>
+                <div class="escala-etiqueta">Período de análisis</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FLUJO DEL SISTEMA -->
+    <section class="seccion" style="background:var(--blanco); max-width:100%; padding: 3rem 2rem;">
+        <div style="max-width:1200px; margin:0 auto;">
+            <h2 class="seccion-titulo">Flujo del Sistema</h2>
+            <div class="flujo-grid">
+                <div class="flujo-paso">
+                    <div class="flujo-numero">1</div>
+                    <div class="flujo-icono">📡</div>
+                    <div class="flujo-titulo">Captura de Sensores</div>
+                    <div class="flujo-desc">500 sensores de lux, temperatura y radiación solar en las 20 localidades</div>
+                </div>
+                <div class="flujo-paso">
+                    <div class="flujo-numero">2</div>
+                    <div class="flujo-icono">🗄️</div>
+                    <div class="flujo-titulo">Almacenamiento OLTP</div>
+                    <div class="flujo-desc">SQL Server con modelo transaccional normalizado — 1M de registros cargados</div>
+                </div>
+                <div class="flujo-paso">
+                    <div class="flujo-numero">3</div>
+                    <div class="flujo-icono">⚙️</div>
+                    <div class="flujo-titulo">ETL al Data Warehouse</div>
+                    <div class="flujo-desc">Proceso de transformación hacia modelo dimensional para análisis histórico</div>
+                </div>
+                <div class="flujo-paso">
+                    <div class="flujo-numero">4</div>
+                    <div class="flujo-icono">📊</div>
+                    <div class="flujo-titulo">Análisis y Visualización</div>
+                    <div class="flujo-desc">Dashboard web interactivo + Power BI + modelo ML de predicción</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TECNOLOGÍAS -->
+    <section class="seccion">
+        <h2 class="seccion-titulo">Tecnologías Utilizadas</h2>
+        <div class="tech-grid">
+            <span class="tech-badge">🗃️ SQL Server</span>
+            <span class="tech-badge">🐍 Python</span>
+            <span class="tech-badge">🌶️ Flask</span>
+            <span class="tech-badge">📊 Power BI</span>
+            <span class="tech-badge">🤖 scikit-learn</span>
+            <span class="tech-badge">🗺️ Leaflet.js</span>
+            <span class="tech-badge">📈 Chart.js</span>
+            <span class="tech-badge">🐙 GitHub</span>
+        </div>
+    </section>
+
+    <!-- EQUIPO -->
+    <section class="seccion" style="background:var(--blanco); max-width:100%; padding: 3rem 2rem;">
+        <div style="max-width:1200px; margin:0 auto;">
+            <h2 class="seccion-titulo">Equipo de Desarrollo</h2>
+            <div class="equipo-grid">
+                <div class="equipo-card">
+                    <div class="equipo-avatar">1</div>
+                    <div class="equipo-nombre">Integrante 1</div>
+                    <div class="equipo-rol">Base de Datos & ETL</div>
+                </div>
+                <div class="equipo-card">
+                    <div class="equipo-avatar">2</div>
+                    <div class="equipo-nombre">Integrante 2</div>
+                    <div class="equipo-rol">Data Engineering & Frontend</div>
+                </div>
+                <div class="equipo-card">
+                    <div class="equipo-avatar">3</div>
+                    <div class="equipo-nombre">Integrante 3</div>
+                    <div class="equipo-rol">Power BI & Visualización</div>
+                </div>
+                <div class="equipo-card">
+                    <div class="equipo-avatar">4</div>
+                    <div class="equipo-nombre">Integrante 4</div>
+                    <div class="equipo-rol">Machine Learning</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>Sistema de Monitorización de Iluminación Inteligente — Bogotá D.C. · ODS 7 · ODS 11 · ODS 13</p>
+    </footer>
+</body>
+</html>

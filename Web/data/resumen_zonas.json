@@ -1,0 +1,222 @@
+[
+  {
+    "zona_id": 1,
+    "zona_nombre": "Usaquén",
+    "lux_promedio": 11896.28,
+    "lux_optimo_promedio": 11895.7,
+    "anomalias": 936,
+    "ahorro_kwh_estimado": 180.88,
+    "total_registros": 46072,
+    "kwh_total": 1497.34,
+    "costo_cop_total": 1197872.0
+  },
+  {
+    "zona_id": 2,
+    "zona_nombre": "Chapinero",
+    "lux_promedio": 12004.45,
+    "lux_optimo_promedio": 12002.24,
+    "anomalias": 544,
+    "ahorro_kwh_estimado": 108.31,
+    "total_registros": 27866,
+    "kwh_total": 905.64,
+    "costo_cop_total": 724516.0
+  },
+  {
+    "zona_id": 3,
+    "zona_nombre": "Santa Fe",
+    "lux_promedio": 11955.41,
+    "lux_optimo_promedio": 11957.33,
+    "anomalias": 840,
+    "ahorro_kwh_estimado": 100.55,
+    "total_registros": 42400,
+    "kwh_total": 1378.0,
+    "costo_cop_total": 1102400.0
+  },
+  {
+    "zona_id": 4,
+    "zona_nombre": "San Cristóbal",
+    "lux_promedio": 12012.4,
+    "lux_optimo_promedio": 12013.84,
+    "anomalias": 956,
+    "ahorro_kwh_estimado": 113.53,
+    "total_registros": 47927,
+    "kwh_total": 1557.63,
+    "costo_cop_total": 1246102.0
+  },
+  {
+    "zona_id": 5,
+    "zona_nombre": "Usme",
+    "lux_promedio": 11905.53,
+    "lux_optimo_promedio": 11906.93,
+    "anomalias": 2072,
+    "ahorro_kwh_estimado": 239.69,
+    "total_registros": 100019,
+    "kwh_total": 3250.62,
+    "costo_cop_total": 2600494.0
+  },
+  {
+    "zona_id": 6,
+    "zona_nombre": "Tunjuelito",
+    "lux_promedio": 11840.13,
+    "lux_optimo_promedio": 11842.02,
+    "anomalias": 64,
+    "ahorro_kwh_estimado": 9.67,
+    "total_registros": 4113,
+    "kwh_total": 133.67,
+    "costo_cop_total": 106938.0
+  },
+  {
+    "zona_id": 7,
+    "zona_nombre": "Bosa",
+    "lux_promedio": 12074.86,
+    "lux_optimo_promedio": 12074.56,
+    "anomalias": 126,
+    "ahorro_kwh_estimado": 14.43,
+    "total_registros": 5916,
+    "kwh_total": 192.27,
+    "costo_cop_total": 153816.0
+  },
+  {
+    "zona_id": 8,
+    "zona_nombre": "Kennedy",
+    "lux_promedio": 11855.68,
+    "lux_optimo_promedio": 11856.7,
+    "anomalias": 735,
+    "ahorro_kwh_estimado": 79.77,
+    "total_registros": 33797,
+    "kwh_total": 1098.4,
+    "costo_cop_total": 878722.0
+  },
+  {
+    "zona_id": 9,
+    "zona_nombre": "Fontibón",
+    "lux_promedio": 12070.95,
+    "lux_optimo_promedio": 12073.23,
+    "anomalias": 437,
+    "ahorro_kwh_estimado": 54.3,
+    "total_registros": 22039,
+    "kwh_total": 716.27,
+    "costo_cop_total": 573014.0
+  },
+  {
+    "zona_id": 10,
+    "zona_nombre": "Engativá",
+    "lux_promedio": 12030.94,
+    "lux_optimo_promedio": 12030.57,
+    "anomalias": 541,
+    "ahorro_kwh_estimado": 64.02,
+    "total_registros": 25891,
+    "kwh_total": 841.46,
+    "costo_cop_total": 673166.0
+  },
+  {
+    "zona_id": 11,
+    "zona_nombre": "Suba",
+    "lux_promedio": 11907.91,
+    "lux_optimo_promedio": 11905.29,
+    "anomalias": 1094,
+    "ahorro_kwh_estimado": 219.63,
+    "total_registros": 55820,
+    "kwh_total": 1814.15,
+    "costo_cop_total": 1451320.0
+  },
+  {
+    "zona_id": 12,
+    "zona_nombre": "Barrios Unidos",
+    "lux_promedio": 12121.28,
+    "lux_optimo_promedio": 12128.81,
+    "anomalias": 37,
+    "ahorro_kwh_estimado": 4.45,
+    "total_registros": 1996,
+    "kwh_total": 64.87,
+    "costo_cop_total": 51896.0
+  },
+  {
+    "zona_id": 13,
+    "zona_nombre": "Teusaquillo",
+    "lux_promedio": 12032.78,
+    "lux_optimo_promedio": 12029.11,
+    "anomalias": 69,
+    "ahorro_kwh_estimado": 15.57,
+    "total_registros": 3929,
+    "kwh_total": 127.69,
+    "costo_cop_total": 102154.0
+  },
+  {
+    "zona_id": 14,
+    "zona_nombre": "Los Mártires",
+    "lux_promedio": 12711.85,
+    "lux_optimo_promedio": 12717.86,
+    "anomalias": 36,
+    "ahorro_kwh_estimado": 4.85,
+    "total_registros": 1985,
+    "kwh_total": 64.51,
+    "costo_cop_total": 51610.0
+  },
+  {
+    "zona_id": 15,
+    "zona_nombre": "Antonio Nariño",
+    "lux_promedio": 12505.78,
+    "lux_optimo_promedio": 12503.2,
+    "anomalias": 42,
+    "ahorro_kwh_estimado": 4.99,
+    "total_registros": 2089,
+    "kwh_total": 67.89,
+    "costo_cop_total": 54314.0
+  },
+  {
+    "zona_id": 16,
+    "zona_nombre": "Puente Aranda",
+    "lux_promedio": 11965.84,
+    "lux_optimo_promedio": 11965.14,
+    "anomalias": 182,
+    "ahorro_kwh_estimado": 23.75,
+    "total_registros": 10004,
+    "kwh_total": 325.13,
+    "costo_cop_total": 260104.0
+  },
+  {
+    "zona_id": 17,
+    "zona_nombre": "La Candelaria",
+    "lux_promedio": 12063.17,
+    "lux_optimo_promedio": 12066.81,
+    "anomalias": 43,
+    "ahorro_kwh_estimado": 4.55,
+    "total_registros": 1953,
+    "kwh_total": 63.47,
+    "costo_cop_total": 50778.0
+  },
+  {
+    "zona_id": 18,
+    "zona_nombre": "Rafael Uribe",
+    "lux_promedio": 11958.39,
+    "lux_optimo_promedio": 11959.88,
+    "anomalias": 73,
+    "ahorro_kwh_estimado": 9.61,
+    "total_registros": 4143,
+    "kwh_total": 134.65,
+    "costo_cop_total": 107718.0
+  },
+  {
+    "zona_id": 19,
+    "zona_nombre": "Ciudad Bolívar",
+    "lux_promedio": 11715.52,
+    "lux_optimo_promedio": 11717.14,
+    "anomalias": 1423,
+    "ahorro_kwh_estimado": 174.81,
+    "total_registros": 72005,
+    "kwh_total": 2340.16,
+    "costo_cop_total": 1872130.0
+  },
+  {
+    "zona_id": 20,
+    "zona_nombre": "Sumapaz",
+    "lux_promedio": 11891.32,
+    "lux_optimo_promedio": 11892.65,
+    "anomalias": 9649,
+    "ahorro_kwh_estimado": 1178.54,
+    "total_registros": 490036,
+    "kwh_total": 15926.17,
+    "costo_cop_total": 12740936.0
+  }
+]
