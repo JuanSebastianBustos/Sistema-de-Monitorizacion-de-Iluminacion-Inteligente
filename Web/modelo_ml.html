@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo ML — Iluminación Bogotá</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/utils.js" defer></script>
+
+    <style>
+        .chart-wrap    { position: relative; height: 300px; }
+        .chart-wrap-sm { position: relative; height: 240px; }
+        .chart-wrap-md { position: relative; height: 320px; }
+
+        /* Tarjeta de métrica con ícono grande */
+        .metrica-card {
+            background: var(--blanco);
+            border-radius: var(--radio-tarjeta);
+            padding: 1.25rem;
+            box-shadow: var(--sombra);
+            text-align: center;
+            transition: var(--transicion);
+        }
+        .metrica-card:hover { box-shadow: var(--sombra-hover); }
+        .metrica-icono  { font-size: 2rem; margin-bottom: 0.5rem; }
+        .metrica-nombre { font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+                          letter-spacing: 0.5px; color: var(--texto-suave); margin-bottom: 0.4rem; }
+        .metrica-valor  { font-size: 2.2rem; font-weight: 700; color: var(--azul-oscuro); line-height: 1; }
+        .metrica-sub    { font-size: 0.75rem; color: var(--texto-suave); margin-top: 0.35rem; }
+
+        /* Sección introductoria */
+        .intro-card {
+            background: var(--azul-oscuro);
+            color: var(--blanco);
+            border-radius: var(--radio-tarjeta);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.25rem;
+        }
+        .intro-item h3  { font-size: 0.78rem; text-transform: uppercase; color: rgba(255,255,255,0.6);
+                          letter-spacing: 0.5px; margin-bottom: 0.4rem; }
+        .intro-item p   { font-size: 0.88rem; color: rgba(255,255,255,0.9); line-height: 1.5; }
+
+        /* Explorador interactivo */
+        .explorador-card {
+            background: var(--blanco);
+            border-radius: var(--radio-tarjeta);
+            padding: 1.5rem;
+            box-shadow: var(--sombra);
+            margin-bottom: 1.5rem;
+        }
+        .explorador-controles {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 1rem;
+            align-items: flex-end;
+            margin-bottom: 1.25rem;
+        }
+        .explorador-controles label {
+            display: block; font-size: 0.75rem; font-weight: 600;
+            color: var(--texto-suave); text-transform: uppercase; margin-bottom: 0.3rem;
+        }
+        .explorador-controles select {
+            width: 100%; border: 1px solid var(--gris-borde); border-radius: 4px;
+            padding: 0.45rem 0.75rem; font-size: 0.85rem; color: var(--texto-principal);
+            background: var(--blanco);
+        }
+        .btn-consultar {
+            background: var(--azul-medio); color: var(--blanco); border: none;
+            border-radius: 4px; padding: 0.5rem 1.4rem; font-size: 0.85rem;
+            font-weight: 600; cursor: pointer; transition: var(--transicion);
+            white-space: nowrap;
+        }
+        .btn-consultar:hover { background: var(--azul-oscuro); }
+
+        .resultado-prediccion {
+            background: var(--gris-fondo);
+            border-radius: var(--radio-tarjeta);
+            padding: 1.25rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+            border-left: 4px solid var(--azul-medio);
+        }
+        .pred-item { text-align: center; }
+        .pred-label { font-size: 0.72rem; font-weight: 600; color: var(--texto-suave);
+                      text-transform: uppercase; margin-bottom: 0.3rem; }
+        .pred-valor { font-size: 1.7rem; font-weight: 700; color: var(--azul-oscuro); line-height: 1; }
+        .pred-sub   { font-size: 0.75rem; color: var(--texto-suave); margin-top: 0.25rem; }
+
+        /* Tabla de importancia */
+        .tabla-compacta td, .tabla-compacta th { padding: 0.45rem 0.75rem; font-size: 0.82rem; }
+        .barra-importancia {
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .bar-imp {
+            height: 8px; border-radius: 4px;
+            background: var(--azul-medio); flex-shrink: 0;
+        }
+
+        /* Alerta de accuracy perfecto */
+        .nota-perfecto {
+            background: #D4EDDA; border: 1px solid #C3E6CB; border-radius: 6px;
+            padding: 0.6rem 1rem; font-size: 0.8rem; color: #155724; margin-top: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .intro-card              { grid-template-columns: 1fr; }
+            .explorador-controles    { grid-template-columns: 1fr 1fr; }
+            .resultado-prediccion    { grid-template-columns: 1fr; }
+            .grafico-grid-2          { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <script>inyectarNavbar();</script>
+
+    <div class="contenido-principal">
+        <div style="margin-bottom:1.25rem;">
+            <h1 class="pagina-titulo">🤖 Modelo de Machine Learning</h1>
+            <p class="pagina-subtitulo">RandomForest para predicción de iluminación óptima y clasificación de encendido — Bogotá D.C.</p>
+        </div>
+
+        <!-- Intro -->
+        <div class="intro-card">
+            <div class="intro-item">
+                <h3>¿Qué predice?</h3>
+                <p>Dos modelos en paralelo: un <strong>regresor</strong> que estima el lux óptimo para cada luminaria, y un <strong>clasificador</strong> que decide si debe estar encendida o apagada, dado el contexto climático y temporal.</p>
+            </div>
+            <div class="intro-item">
+                <h3>Variables de entrada</h3>
+                <p>Hora del día, condición climática (clima_id), cobertura nubosa (%), radiación solar (W/m²), temperatura (°C), día de semana y si es fin de semana.</p>
+            </div>
+            <div class="intro-item">
+                <h3>Algoritmo</h3>
+                <p><strong>Random Forest</strong> con 100 árboles y profundidad máxima 15. Elegido por su robustez frente a variables de distinta escala y su interpretabilidad mediante importancia de features.</p>
+            </div>
+        </div>
+
+        <!-- Métricas: 4 tarjetas -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:1.5rem;" id="contenedor-metricas">
+            <div class="loading"><div class="spinner"></div> Cargando métricas...</div>
+        </div>
+
+        <!-- Explorador interactivo -->
+        <div class="explorador-card">
+            <div class="grafico-titulo" style="margin-bottom:1rem;">🔮 Explorador de Predicciones</div>
+            <p style="font-size:0.82rem;color:var(--texto-suave);margin-bottom:1rem;">
+                Selecciona zona, hora y condición climática para consultar la predicción del modelo sin ejecutarlo en tiempo real.
+                Los valores provienen de <code>tabla_lookup</code> del JSON de resultados.
+            </p>
+            <div class="explorador-controles">
+                <div>
+                    <label>Zona (ID)</label>
+                    <select id="sel-zona"></select>
+                </div>
+                <div>
+                    <label>Hora del día</label>
+                    <select id="sel-hora"></select>
+                </div>
+                <div>
+                    <label>Condición climática</label>
+                    <select id="sel-clima">
+                        <option value="1">☀️ Soleado (clima 1)</option>
+                        <option value="2">⛅ Parcialmente nublado (clima 2)</option>
+                        <option value="3">☁️ Nublado (clima 3)</option>
+                        <option value="4">🌧️ Lluvia / nocturno (clima 4)</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn-consultar" onclick="consultarModelo()">Consultar →</button>
+                </div>
+            </div>
+            <div id="resultado-prediccion" class="resultado-prediccion">
+                <div class="pred-item">
+                    <div class="pred-label">Lux óptimo predicho</div>
+                    <div class="pred-valor" id="pred-lux" style="color:var(--azul-medio);">—</div>
+                    <div class="pred-sub">lux</div>
+                </div>
+                <div class="pred-item">
+                    <div class="pred-label">Estado recomendado</div>
+                    <div class="pred-valor" id="pred-estado" style="font-size:1.4rem;">—</div>
+                    <div class="pred-sub" id="pred-estado-sub">—</div>
+                </div>
+                <div class="pred-item">
+                    <div class="pred-label">Zona / Hora</div>
+                    <div class="pred-valor" id="pred-contexto" style="font-size:1.2rem;color:var(--texto-suave);">—</div>
+                    <div class="pred-sub" id="pred-contexto-sub">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Importancia features: Regresor + Clasificador -->
+        <div class="grafico-grid grafico-grid-2" style="margin-bottom:1rem;">
+            <div class="grafico-card">
+                <div class="grafico-titulo">📊 Importancia de Features — Regresor (Lux)</div>
+                <div class="chart-wrap-md">
+                    <canvas id="grafico-importancia-reg"></canvas>
+                </div>
+            </div>
+            <div class="grafico-card">
+                <div class="grafico-titulo">📊 Importancia de Features — Clasificador (Encendido)</div>
+                <div class="chart-wrap-md">
+                    <canvas id="grafico-importancia-clas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acierto por hora + Impacto -->
+        <div class="grafico-grid grafico-grid-2" style="margin-bottom:1rem;">
+            <div class="grafico-card">
+                <div class="grafico-titulo">✅ Precisión del Clasificador por Hora del Día</div>
+                <div class="chart-wrap">
+                    <canvas id="grafico-acierto-hora"></canvas>
+                </div>
+                <div class="nota-perfecto">
+                    💡 El clasificador alcanza 100% de precisión en todas las horas. Esto refleja que el encendido/apagado de luminarias sigue un patrón determinístico muy claro según la radiación solar y la hora.
+                </div>
+            </div>
+            <div class="grafico-card">
+                <div class="grafico-titulo">💚 Impacto Estimado del Modelo</div>
+                <div id="impacto-contenido" style="padding:0.5rem 0;">
+                    <div class="loading"><div class="spinner"></div> Cargando...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de importancia detallada -->
+        <div class="grafico-card" style="margin-bottom:1rem;">
+            <div class="grafico-titulo">🔢 Importancia de Variables — Detalle Numérico</div>
+            <div class="tabla-container">
+                <table class="tabla-datos tabla-compacta">
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Importancia Regresor</th>
+                            <th>Importancia Clasificador</th>
+                            <th>Descripción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-features"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Matriz de confusión -->
+        <div class="grafico-card">
+            <div class="grafico-titulo">🧮 Matriz de Confusión — Clasificador de Encendido</div>
+            <div id="matriz-confusion-contenido" style="padding:0.5rem 0;">
+                <div class="loading"><div class="spinner"></div> Cargando...</div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="background:var(--azul-oscuro);color:rgba(255,255,255,0.5);text-align:center;padding:1.25rem;font-size:0.78rem;margin-top:1rem;">
+        Sistema de Monitorización de Iluminación Inteligente — Bogotá D.C. · ODS 7 · ODS 11 · ODS 13
+    </footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  Estado global
+// ══════════════════════════════════════════════════════════════
+let modeloDatos  = null;
+let zonasDatos   = null;
+let chartRegFeat = null, chartClasFeat = null, chartAcierto = null;
+
+const NOMBRES_FEATURES = {
+    'hora':                 'Hora del día',
+    'sensor_id':            'ID del sensor',
+    'cobertura_nubosa_pct': 'Cobertura nubosa (%)',
+    'radiacion_solar_wm2':  'Radiación solar (W/m²)',
+    'temperatura_c':        'Temperatura (°C)',
+    'dia_semana':           'Día de la semana',
+    'es_fin_semana':        'Es fin de semana',
+    'condicion_clima_id':   'Condición climática'
+};
+
+const NOMBRES_ZONAS = {
+    1:'Usaquén', 2:'Chapinero', 3:'Santa Fe', 4:'San Cristóbal', 5:'Usme',
+    6:'Tunjuelito', 7:'Bosa', 8:'Kennedy', 9:'Fontibón', 10:'Engativá',
+    11:'Suba', 12:'Barrios Unidos', 13:'Teusaquillo', 14:'Los Mártires',
+    15:'Antonio Nariño', 16:'Puente Aranda', 17:'La Candelaria',
+    18:'Rafael Uribe', 19:'Ciudad Bolívar', 20:'Sumapaz'
+};
+
+// ══════════════════════════════════════════════════════════════
+//  Init
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+    modeloDatos = await cargarJSON('resultados_modelo.json');
+    if (!modeloDatos) { mostrarError('contenedor-metricas', 'No se pudo cargar resultados_modelo.json'); return; }
+
+    zonasDatos = await cargarJSON('resumen_zonas.json');
+
+    popularSelectores();
+    renderMetricas();
+    renderImportanciaReg();
+    renderImportanciaClasificador();
+    renderAciertoPorHora();
+    renderImpacto();
+    renderTablaFeatures();
+    renderMatrizConfusion();
+});
+
+// ══════════════════════════════════════════════════════════════
+//  Selectores del explorador
+// ══════════════════════════════════════════════════════════════
+function popularSelectores() {
+    const selZona = document.getElementById('sel-zona');
+    const selHora = document.getElementById('sel-hora');
+
+    Object.entries(NOMBRES_ZONAS).forEach(([id, nombre]) => {
+        const op = document.createElement('option');
+        op.value = id; op.textContent = `${nombre} (${id})`;
+        selZona.appendChild(op);
+    });
+
+    for (let h = 0; h < 24; h++) {
+        const op = document.createElement('option');
+        op.value = h; op.textContent = `${String(h).padStart(2,'0')}:00`;
+        selHora.appendChild(op);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Métricas KPI
+// ══════════════════════════════════════════════════════════════
+function renderMetricas() {
+    const r = modeloDatos.regresor;
+    const c = modeloDatos.clasificador;
+
+    document.getElementById('contenedor-metricas').innerHTML = `
+        <div class="metrica-card" style="border-left:4px solid var(--verde);">
+            <div class="metrica-icono">📈</div>
+            <div class="metrica-nombre">R² — Regresor Lux</div>
+            <div class="metrica-valor" style="color:var(--verde);">${r.R2.toFixed(4)}</div>
+            <div class="metrica-sub">Varianza explicada del modelo</div>
+        </div>
+        <div class="metrica-card" style="border-left:4px solid var(--amarillo);">
+            <div class="metrica-icono">📉</div>
+            <div class="metrica-nombre">MAE — Error Absoluto Medio</div>
+            <div class="metrica-valor" style="color:var(--amarillo);">${fmtNum(r.MAE, 2)}</div>
+            <div class="metrica-sub">Lux de error promedio</div>
+        </div>
+        <div class="metrica-card" style="border-left:4px solid var(--azul-claro);">
+            <div class="metrica-icono">🎯</div>
+            <div class="metrica-nombre">Accuracy — Clasificador</div>
+            <div class="metrica-valor" style="color:var(--azul-medio);">${fmtPct(c.accuracy * 100)}</div>
+            <div class="metrica-sub">Predicciones correctas</div>
+        </div>
+        <div class="metrica-card" style="border-left:4px solid var(--azul-oscuro);">
+            <div class="metrica-icono">⚖️</div>
+            <div class="metrica-nombre">F1-Score — Clasificador</div>
+            <div class="metrica-valor" style="color:var(--azul-oscuro);">${c.f1_score.toFixed(4)}</div>
+            <div class="metrica-sub">Balance precisión / recall</div>
+        </div>
+    `;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Importancia features — Regresor
+// ══════════════════════════════════════════════════════════════
+function renderImportanciaReg() {
+    const ctx = document.getElementById('grafico-importancia-reg').getContext('2d');
+    if (chartRegFeat) chartRegFeat.destroy();
+
+    const feats = modeloDatos.regresor.importancia_features;
+    const entries = Object.entries(feats)
+        .map(([k, v]) => ({ nombre: NOMBRES_FEATURES[k] || k, valor: v }))
+        .sort((a, b) => b.valor - a.valor);
+
+    chartRegFeat = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: entries.map(e => e.nombre),
+            datasets: [{
+                label: 'Importancia',
+                data: entries.map(e => e.valor),
+                backgroundColor: entries.map((_, i) => PALETA[i % PALETA.length] + 'BB'),
+                borderColor:     entries.map((_, i) => PALETA[i % PALETA.length]),
+                borderWidth: 1.5,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => `Importancia: ${(ctx.raw * 100).toFixed(2)}%` } }
+            },
+            scales: {
+                x: { ...OPCIONES_BASE_CHART.scales.x, ticks: { callback: v => (v * 100).toFixed(1) + '%' } },
+                y: { ...OPCIONES_BASE_CHART.scales.y, ticks: { font: { size: 9 } } }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Importancia features — Clasificador
+// ══════════════════════════════════════════════════════════════
+function renderImportanciaClasificador() {
+    const ctx = document.getElementById('grafico-importancia-clas').getContext('2d');
+    if (chartClasFeat) chartClasFeat.destroy();
+
+    const feats = modeloDatos.clasificador.importancia_features;
+    const entries = Object.entries(feats)
+        .map(([k, v]) => ({ nombre: NOMBRES_FEATURES[k] || k, valor: v }))
+        .sort((a, b) => b.valor - a.valor);
+
+    chartClasFeat = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: entries.map(e => e.nombre),
+            datasets: [{
+                label: 'Importancia',
+                data: entries.map(e => e.valor),
+                backgroundColor: entries.map((_, i) => PALETA[i % PALETA.length] + 'BB'),
+                borderColor:     entries.map((_, i) => PALETA[i % PALETA.length]),
+                borderWidth: 1.5,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => `Importancia: ${(ctx.raw * 100).toFixed(2)}%` } }
+            },
+            scales: {
+                x: { ...OPCIONES_BASE_CHART.scales.x, ticks: { callback: v => (v * 100).toFixed(1) + '%' } },
+                y: { ...OPCIONES_BASE_CHART.scales.y, ticks: { font: { size: 9 } } }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Acierto por hora
+// ══════════════════════════════════════════════════════════════
+function renderAciertoPorHora() {
+    const ctx = document.getElementById('grafico-acierto-hora').getContext('2d');
+    if (chartAcierto) chartAcierto.destroy();
+
+    const datos = modeloDatos.predicciones_por_hora;
+
+    chartAcierto = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: datos.map(d => `${String(d.hora).padStart(2,'0')}:00`),
+            datasets: [{
+                label: '% Acierto',
+                data: datos.map(d => d.pct_acierto),
+                borderColor: '#1A7A4A',
+                backgroundColor: '#1A7A4A22',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 3,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => `Acierto: ${fmtPct(ctx.raw)}` } }
+            },
+            scales: {
+                x: { ...OPCIONES_BASE_CHART.scales.x, ticks: { font: { size: 9 } } },
+                y: { ...OPCIONES_BASE_CHART.scales.y, min: 0, max: 100, ticks: { callback: v => v + '%' } }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Impacto del modelo
+// ══════════════════════════════════════════════════════════════
+function renderImpacto() {
+    const imp = modeloDatos.impacto;
+    document.getElementById('impacto-contenido').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:0.5rem 0;">
+            <div class="kpi-card verde" style="text-align:center;">
+                <div class="kpi-etiqueta">Ahorro total estimado</div>
+                <div class="kpi-valor">${fmtNum(imp.ahorro_total_kwh, 2)}</div>
+                <div class="kpi-unidad">kWh</div>
+            </div>
+            <div class="kpi-card rojo" style="text-align:center;">
+                <div class="kpi-etiqueta">kWh desperdiciados (actual)</div>
+                <div class="kpi-valor">${fmtNum(imp.kwh_desperdiciados, 2)}</div>
+                <div class="kpi-unidad">kWh detectados</div>
+            </div>
+        </div>
+        <div style="background:var(--gris-fondo);border-radius:6px;padding:1rem;margin-top:0.5rem;">
+            <div style="font-size:0.82rem;font-weight:600;color:var(--azul-oscuro);margin-bottom:0.5rem;">
+                💡 Ahorro promedio por luminaria
+            </div>
+            <div style="font-size:2rem;font-weight:700;color:var(--verde);">${fmtNum(imp.ahorro_promedio_por_luminaria_kwh, 2)} kWh</div>
+            <p style="font-size:0.78rem;color:var(--texto-suave);margin-top:0.35rem;">
+                Aplicando las recomendaciones del modelo (encendido óptimo basado en radiación solar y condición climática)
+            </p>
+        </div>
+    `;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Tabla de features
+// ══════════════════════════════════════════════════════════════
+function renderTablaFeatures() {
+    const tbody = document.getElementById('tabla-features');
+    const regFeats  = modeloDatos.regresor.importancia_features;
+    const clasFeats = modeloDatos.clasificador.importancia_features;
+    const DESCRIPCIONES = {
+        'hora':                 'Hora del día (0–23). Define si hay luz solar.',
+        'sensor_id':            'Identificador del sensor. Baja relevancia predictiva global.',
+        'cobertura_nubosa_pct': 'Porcentaje de cobertura de nubes. Afecta la luz solar disponible.',
+        'radiacion_solar_wm2':  'Energía solar por unidad de superficie. Principal predictor del lux.',
+        'temperatura_c':        'Temperatura ambiente en grados Celsius.',
+        'dia_semana':           'Día de la semana (1=Lunes … 7=Domingo).',
+        'es_fin_semana':        'Indicador binario: 1 si es sábado o domingo.',
+        'condicion_clima_id':   'Categoría climática codificada (1=soleado … 4=lluvia/noche).'
+    };
+
+    const maxReg  = Math.max(...Object.values(regFeats));
+    const maxClas = Math.max(...Object.values(clasFeats));
+
+    tbody.innerHTML = Object.keys(regFeats).map(k => {
+        const vR = regFeats[k]  || 0;
+        const vC = clasFeats[k] || 0;
+        const wR = (vR / maxReg  * 120).toFixed(0);
+        const wC = (vC / maxClas * 120).toFixed(0);
+        return `
+        <tr>
+            <td style="font-weight:600;">${NOMBRES_FEATURES[k] || k}</td>
+            <td>
+                <div class="barra-importancia">
+                    <div class="bar-imp" style="width:${wR}px;background:var(--azul-medio);"></div>
+                    <span style="font-size:0.8rem;">${(vR*100).toFixed(2)}%</span>
+                </div>
+            </td>
+            <td>
+                <div class="barra-importancia">
+                    <div class="bar-imp" style="width:${wC}px;background:var(--verde);"></div>
+                    <span style="font-size:0.8rem;">${(vC*100).toFixed(2)}%</span>
+                </div>
+            </td>
+            <td style="font-size:0.78rem;color:var(--texto-suave);">${DESCRIPCIONES[k] || '—'}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Matriz de confusión
+// ══════════════════════════════════════════════════════════════
+function renderMatrizConfusion() {
+    const mc = modeloDatos.clasificador.matriz_confusion;
+    const total = mc.TN + mc.FP + mc.FN + mc.TP;
+
+    document.getElementById('matriz-confusion-contenido').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+            <div>
+                <table style="width:100%;border-collapse:collapse;font-size:0.85rem;text-align:center;">
+                    <thead>
+                        <tr>
+                            <th style="padding:0.5rem;"></th>
+                            <th style="padding:0.5rem;background:#F0F4FA;color:var(--azul-oscuro);">Pred: Apagado</th>
+                            <th style="padding:0.5rem;background:#F0F4FA;color:var(--azul-oscuro);">Pred: Encendido</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding:0.5rem;background:#F0F4FA;font-weight:600;color:var(--azul-oscuro);">Real: Apagado</td>
+                            <td style="padding:1rem;background:#D4EDDA;font-size:1.3rem;font-weight:700;color:#155724;">${fmtNum(mc.TN, 0)}<br><small style="font-size:0.68rem;font-weight:400;">VN</small></td>
+                            <td style="padding:1rem;background:#F8D7DA;font-size:1.3rem;font-weight:700;color:#721C24;">${fmtNum(mc.FP, 0)}<br><small style="font-size:0.68rem;font-weight:400;">FP</small></td>
+                        </tr>
+                        <tr>
+                            <td style="padding:0.5rem;background:#F0F4FA;font-weight:600;color:var(--azul-oscuro);">Real: Encendido</td>
+                            <td style="padding:1rem;background:#F8D7DA;font-size:1.3rem;font-weight:700;color:#721C24;">${fmtNum(mc.FN, 0)}<br><small style="font-size:0.68rem;font-weight:400;">FN</small></td>
+                            <td style="padding:1rem;background:#D4EDDA;font-size:1.3rem;font-weight:700;color:#155724;">${fmtNum(mc.TP, 0)}<br><small style="font-size:0.68rem;font-weight:400;">VP</small></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="font-size:0.75rem;color:var(--texto-suave);margin-top:0.5rem;">
+                    Total de predicciones: ${fmtNum(total, 0)}
+                </p>
+            </div>
+            <div style="font-size:0.82rem;color:var(--texto-suave);line-height:1.7;">
+                <p><strong style="color:var(--verde);">VP (Verdaderos Positivos): ${fmtNum(mc.TP,0)}</strong> — Luminarias encendidas correctamente identificadas.</p>
+                <p><strong style="color:var(--verde);">VN (Verdaderos Negativos): ${fmtNum(mc.TN,0)}</strong> — Luminarias apagadas correctamente identificadas.</p>
+                <p><strong style="color:var(--rojo);">FP (Falsos Positivos): ${fmtNum(mc.FP,0)}</strong> — Predijo encendido cuando estaba apagada.</p>
+                <p><strong style="color:var(--rojo);">FN (Falsos Negativos): ${fmtNum(mc.FN,0)}</strong> — Predijo apagado cuando estaba encendida.</p>
+                <div class="nota-perfecto" style="margin-top:0.75rem;">
+                    ✅ El clasificador no cometió ningún error: 0 FP y 0 FN. El patrón de encendido/apagado está completamente determinado por la hora y la radiación solar.
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Explorador: consultar lookup
+// ══════════════════════════════════════════════════════════════
+function consultarModelo() {
+    const zonaId  = parseInt(document.getElementById('sel-zona').value);
+    const hora    = parseInt(document.getElementById('sel-hora').value);
+    const climaId = parseInt(document.getElementById('sel-clima').value);
+
+    const resultado = modeloDatos.tabla_lookup.find(
+        e => e.zona_id === zonaId && e.hora === hora && e.clima_id === climaId
+    );
+
+    const nombreZona = NOMBRES_ZONAS[zonaId] || `Zona ${zonaId}`;
+    const nombreClima = ['', '☀️ Soleado', '⛅ Parcial nublado', '☁️ Nublado', '🌧️ Lluvia'][climaId];
+
+    if (!resultado) {
+        document.getElementById('pred-lux').textContent     = '—';
+        document.getElementById('pred-estado').textContent  = '⚠️';
+        document.getElementById('pred-estado-sub').textContent = 'Sin datos para esta combinación';
+        document.getElementById('pred-contexto').textContent = `${nombreZona}`;
+        document.getElementById('pred-contexto-sub').textContent = `${String(hora).padStart(2,'0')}:00 · ${nombreClima}`;
+        return;
+    }
+
+    const encendido = resultado.encendido_predicho === 1;
+    document.getElementById('pred-lux').textContent      = fmtNum(resultado.lux_predicho, 2);
+    document.getElementById('pred-lux').style.color      = encendido ? 'var(--amarillo)' : 'var(--azul-medio)';
+    document.getElementById('pred-estado').textContent   = encendido ? '💡 ENCENDIDA' : '🌑 APAGADA';
+    document.getElementById('pred-estado').style.color   = encendido ? 'var(--amarillo)' : 'var(--azul-oscuro)';
+    document.getElementById('pred-estado').style.fontSize= '1.1rem';
+    document.getElementById('pred-estado-sub').textContent = encendido
+        ? 'La luminaria debe estar activa' : 'Suficiente luz natural disponible';
+    document.getElementById('pred-contexto').textContent = nombreZona;
+    document.getElementById('pred-contexto-sub').textContent = `${String(hora).padStart(2,'0')}:00 · ${nombreClima}`;
+
+    // Actualizar borde del resultado según estado
+    document.getElementById('resultado-prediccion').style.borderLeftColor =
+        encendido ? 'var(--amarillo)' : 'var(--verde)';
+}
+</script>
+</body>
+</html>

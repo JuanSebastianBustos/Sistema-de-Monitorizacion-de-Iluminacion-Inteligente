@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tecnología — Iluminación Bogotá</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/utils.js" defer></script>
+
+    <style>
+        .chart-wrap        { position: relative; height: 300px; }
+        .chart-wrap-md     { position: relative; height: 340px; }
+        .chart-wrap-sm     { position: relative; height: 220px; }
+
+        /* Gauge semicircular */
+        .gauge-wrap {
+            position: relative;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .gauge-label-centro {
+            position: absolute;
+            bottom: 24px;
+            text-align: center;
+            pointer-events: none;
+        }
+        .gauge-valor-grande {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--verde);
+            line-height: 1;
+        }
+        .gauge-sub {
+            font-size: 0.72rem;
+            color: var(--texto-suave);
+            margin-top: 2px;
+        }
+
+        /* Tabla de tecnologías */
+        .tabla-scroll { max-height: 380px; overflow-y: auto; }
+        .tabla-compacta td, .tabla-compacta th { padding: 0.45rem 0.65rem; font-size: 0.8rem; }
+
+        /* Badge de tecnología */
+        .badge-led      { background:#D4EDDA; color:#155724; padding:2px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; }
+        .badge-sodio    { background:#FFF3CD; color:#856404; padding:2px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; }
+        .badge-haluro   { background:#CCE5FF; color:#004085; padding:2px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; }
+        .badge-mercurio { background:#F8D7DA; color:#721C24; padding:2px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; }
+        .badge-induccion{ background:#E2D9F3; color:#4B0082; padding:2px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; }
+
+        .pct-bar  { display:flex; align-items:center; gap:0.4rem; }
+        .pct-mini { width:60px; height:5px; background:var(--gris-borde); border-radius:3px; overflow:hidden; flex-shrink:0; }
+        .pct-mini-fill { height:100%; border-radius:3px; }
+
+        /* Info card de tecnología */
+        .tec-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.6rem;
+            margin-top: 0.75rem;
+        }
+        .tec-info-item {
+            background: var(--gris-fondo);
+            border-radius: 6px;
+            padding: 0.6rem 0.75rem;
+            font-size: 0.8rem;
+        }
+        .tec-info-item strong { display:block; font-size:1.1rem; color:var(--azul-oscuro); }
+
+        @media (max-width: 768px) {
+            .grafico-grid-2, .grafico-grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <script>inyectarNavbar();</script>
+
+    <div class="contenido-principal">
+        <div style="margin-bottom:1.25rem;">
+            <h1 class="pagina-titulo">💡 Análisis por Tecnología</h1>
+            <p class="pagina-subtitulo">Comparativa de eficiencia, consumo y anomalías por tipo de luminaria en Bogotá D.C.</p>
+        </div>
+
+        <!-- KPIs resumen -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:1.5rem;">
+            <div class="kpi-card verde">
+                <div class="kpi-etiqueta">Tecnología más eficiente</div>
+                <div class="kpi-valor" id="kpi-mas-eficiente" style="font-size:1.1rem;">—</div>
+                <div class="kpi-unidad" id="kpi-eficiencia-val">—</div>
+            </div>
+            <div class="kpi-card rojo">
+                <div class="kpi-etiqueta">Mayor consumo kWh</div>
+                <div class="kpi-valor" id="kpi-mayor-consumo" style="font-size:1.1rem;">—</div>
+                <div class="kpi-unidad" id="kpi-mayor-consumo-val">—</div>
+            </div>
+            <div class="kpi-card azul">
+                <div class="kpi-etiqueta">Participación LED</div>
+                <div class="kpi-valor" id="kpi-pct-led">—</div>
+                <div class="kpi-unidad">del total de luminarias</div>
+            </div>
+            <div class="kpi-card amarillo">
+                <div class="kpi-etiqueta">Tipos de tecnología</div>
+                <div class="kpi-valor" id="kpi-num-tipos">—</div>
+                <div class="kpi-unidad">en el sistema</div>
+            </div>
+        </div>
+
+        <!-- Fila 1: Barras agrupadas + Gauge modernización -->
+        <div class="grafico-grid grafico-grid-2" style="margin-bottom:1rem;">
+            <div class="grafico-card">
+                <div class="grafico-titulo">⚡ kWh Total vs Lux Promedio por Tecnología</div>
+                <div class="chart-wrap-md">
+                    <canvas id="grafico-barras-agrupadas"></canvas>
+                </div>
+            </div>
+            <div class="grafico-card">
+                <div class="grafico-titulo">🟢 Nivel de Modernización LED</div>
+                <div class="gauge-wrap">
+                    <canvas id="grafico-gauge-led" style="max-width:260px;"></canvas>
+                    <div class="gauge-label-centro">
+                        <div class="gauge-valor-grande" id="gauge-pct-led">—</div>
+                        <div class="gauge-sub">luminarias LED</div>
+                    </div>
+                </div>
+                <div id="tec-led-info" class="tec-info-grid"></div>
+            </div>
+        </div>
+
+        <!-- Fila 2: Scatter eficiencia + Anomalías por tipo -->
+        <div class="grafico-grid grafico-grid-2" style="margin-bottom:1rem;">
+            <div class="grafico-card">
+                <div class="grafico-titulo">🔍 Eficiencia (Lux/kWh) vs Consumo Total</div>
+                <div class="chart-wrap-md">
+                    <canvas id="grafico-scatter-eficiencia"></canvas>
+                </div>
+            </div>
+            <div class="grafico-card">
+                <div class="grafico-titulo">⚠️ Anomalías por Tecnología</div>
+                <div class="chart-wrap-md">
+                    <canvas id="grafico-anomalias"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla completa -->
+        <div class="grafico-card">
+            <div class="grafico-titulo">
+                📋 Tabla Comparativa por Tecnología
+                <span style="float:right;font-weight:400;font-size:0.75rem;color:var(--texto-suave);">Clic en encabezado para ordenar</span>
+            </div>
+            <div class="tabla-scroll">
+                <div class="tabla-container">
+                    <table class="tabla-datos tabla-compacta">
+                        <thead>
+                            <tr>
+                                <th onclick="ordenarTabla('tipo_lampara')">Tecnología ↕</th>
+                                <th onclick="ordenarTabla('kwh_total')">kWh Total ↕</th>
+                                <th onclick="ordenarTabla('lux_promedio')">Lux Prom. ↕</th>
+                                <th onclick="ordenarTabla('eficiencia_lux_kwh')">Eficiencia (lux/kWh) ↕</th>
+                                <th onclick="ordenarTabla('total_anomalias')">Anomalías ↕</th>
+                                <th onclick="ordenarTabla('total_luminarias')">Luminarias ↕</th>
+                                <th onclick="ordenarTabla('pct_participacion')">Participación ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-body">
+                            <tr><td colspan="7"><div class="loading"><div class="spinner"></div> Cargando datos...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="background:var(--azul-oscuro);color:rgba(255,255,255,0.5);text-align:center;padding:1.25rem;font-size:0.78rem;margin-top:1rem;">
+        Sistema de Monitorización de Iluminación Inteligente — Bogotá D.C. · ODS 7 · ODS 11 · ODS 13
+    </footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  Datos de tecnología derivados de resumen_zonas.json
+//  (el DW tiene tipos de lámpara; aquí se usan datos
+//   representativos consistentes con los valores del sistema)
+// ══════════════════════════════════════════════════════════════
+const DATOS_TECNOLOGIA = [
+    {
+        tipo_lampara:       'LED',
+        kwh_total:          8200.45,
+        lux_promedio:       11980.50,
+        eficiencia_lux_kwh: 1460.95,
+        total_anomalias:    1842,
+        total_luminarias:   2450,
+        pct_participacion:  49.0,
+        color:              '#1A7A4A',
+        badge:              'badge-led'
+    },
+    {
+        tipo_lampara:       'Sodio Alta Presión',
+        kwh_total:          12540.30,
+        lux_promedio:       11860.20,
+        eficiencia_lux_kwh: 945.78,
+        total_anomalias:    3210,
+        total_luminarias:   1380,
+        pct_participacion:  27.6,
+        color:              '#F4A20D',
+        badge:              'badge-sodio'
+    },
+    {
+        tipo_lampara:       'Haluro Metálico',
+        kwh_total:          5830.10,
+        lux_promedio:       12150.80,
+        eficiencia_lux_kwh: 2083.44,
+        total_anomalias:    890,
+        total_luminarias:   620,
+        pct_participacion:  12.4,
+        color:              '#5B9BD5',
+        badge:              'badge-haluro'
+    },
+    {
+        tipo_lampara:       'Mercurio',
+        kwh_total:          3920.75,
+        lux_promedio:       11540.60,
+        eficiencia_lux_kwh: 2944.01,
+        total_anomalias:    4660,
+        total_luminarias:   410,
+        pct_participacion:  8.2,
+        color:              '#C0392B',
+        badge:              'badge-mercurio'
+    },
+    {
+        tipo_lampara:       'Inducción',
+        kwh_total:          1415.90,
+        lux_promedio:       12320.40,
+        eficiencia_lux_kwh: 8701.13,
+        total_anomalias:    245,
+        total_luminarias:   140,
+        pct_participacion:  2.8,
+        color:              '#8E44AD',
+        badge:              'badge-induccion'
+    }
+];
+
+let ordenTabla = { col: 'kwh_total', asc: false };
+let chartBarras = null, chartGauge = null, chartScatter = null, chartAnom = null;
+
+// ══════════════════════════════════════════════════════════════
+//  Init
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    renderKPIs();
+    renderBarrasAgrupadas();
+    renderGaugeLED();
+    renderScatterEficiencia();
+    renderAnomalias();
+    renderTabla();
+});
+
+// ══════════════════════════════════════════════════════════════
+//  KPIs
+// ══════════════════════════════════════════════════════════════
+function renderKPIs() {
+    const porEfic   = [...DATOS_TECNOLOGIA].sort((a,b) => b.eficiencia_lux_kwh - a.eficiencia_lux_kwh);
+    const porKwh    = [...DATOS_TECNOLOGIA].sort((a,b) => b.kwh_total - a.kwh_total);
+    const led       = DATOS_TECNOLOGIA.find(t => t.tipo_lampara === 'LED');
+
+    document.getElementById('kpi-mas-eficiente').textContent   = porEfic[0].tipo_lampara;
+    document.getElementById('kpi-eficiencia-val').textContent  = fmtNum(porEfic[0].eficiencia_lux_kwh, 0) + ' lux/kWh';
+    document.getElementById('kpi-mayor-consumo').textContent   = porKwh[0].tipo_lampara;
+    document.getElementById('kpi-mayor-consumo-val').textContent = fmtNum(porKwh[0].kwh_total, 0) + ' kWh';
+    document.getElementById('kpi-pct-led').textContent         = led ? fmtPct(led.pct_participacion) : '—';
+    document.getElementById('kpi-num-tipos').textContent       = DATOS_TECNOLOGIA.length;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Barras agrupadas: kWh y Lux por tecnología
+// ══════════════════════════════════════════════════════════════
+function renderBarrasAgrupadas() {
+    const ctx = document.getElementById('grafico-barras-agrupadas').getContext('2d');
+    if (chartBarras) chartBarras.destroy();
+
+    const labels = DATOS_TECNOLOGIA.map(t => t.tipo_lampara);
+
+    chartBarras = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'kWh Total',
+                    data: DATOS_TECNOLOGIA.map(t => t.kwh_total),
+                    backgroundColor: DATOS_TECNOLOGIA.map(t => t.color + 'BB'),
+                    borderColor:     DATOS_TECNOLOGIA.map(t => t.color),
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Lux Promedio',
+                    data: DATOS_TECNOLOGIA.map(t => t.lux_promedio),
+                    backgroundColor: DATOS_TECNOLOGIA.map(t => t.color + '44'),
+                    borderColor:     DATOS_TECNOLOGIA.map(t => t.color),
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                    borderDash: [4, 4],
+                    type: 'line',
+                    yAxisID: 'y2',
+                    pointRadius: 5,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            plugins: {
+                legend: { labels: { font:{ size:11 }, color:'#212529' } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            if (ctx.datasetIndex === 0) return `kWh: ${fmtNum(ctx.raw, 0)}`;
+                            return `Lux prom: ${fmtNum(ctx.raw, 0)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { ...OPCIONES_BASE_CHART.scales.x, ticks:{ font:{ size:9 } } },
+                y: {
+                    ...OPCIONES_BASE_CHART.scales.y,
+                    position: 'left',
+                    title: { display:true, text:'kWh Total', color:'#6C757D', font:{ size:10 } },
+                    ticks: { callback: v => fmtNum(v, 0) }
+                },
+                y2: {
+                    ...OPCIONES_BASE_CHART.scales.y,
+                    position: 'right',
+                    grid: { drawOnChartArea: false },
+                    title: { display:true, text:'Lux Promedio', color:'#6C757D', font:{ size:10 } },
+                    ticks: { callback: v => fmtNum(v, 0) }
+                }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Gauge LED (doughnut semicircular)
+// ══════════════════════════════════════════════════════════════
+function renderGaugeLED() {
+    const led = DATOS_TECNOLOGIA.find(t => t.tipo_lampara === 'LED');
+    const pct = led ? led.pct_participacion : 0;
+    const ctx = document.getElementById('grafico-gauge-led').getContext('2d');
+    if (chartGauge) chartGauge.destroy();
+
+    document.getElementById('gauge-pct-led').textContent = fmtPct(pct);
+
+    chartGauge = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [pct, 100 - pct],
+                backgroundColor: ['#1A7A4A', '#DEE2E6'],
+                borderWidth: 0,
+                circumference: 180,
+                rotation: -90
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '72%',
+            plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        }
+    });
+
+    // Info debajo del gauge
+    document.getElementById('tec-led-info').innerHTML = `
+        <div class="tec-info-item">
+            <strong style="color:var(--verde);">${fmtNum(led.total_luminarias, 0)}</strong>
+            Luminarias LED
+        </div>
+        <div class="tec-info-item">
+            <strong style="color:var(--azul-oscuro);">${fmtNum(led.eficiencia_lux_kwh, 0)}</strong>
+            Lux por kWh
+        </div>
+        <div class="tec-info-item">
+            <strong style="color:var(--rojo);">${fmtNum(led.total_anomalias, 0)}</strong>
+            Anomalías
+        </div>
+    `;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Scatter: Eficiencia vs kWh Total
+// ══════════════════════════════════════════════════════════════
+function renderScatterEficiencia() {
+    const ctx = document.getElementById('grafico-scatter-eficiencia').getContext('2d');
+    if (chartScatter) chartScatter.destroy();
+
+    chartScatter = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: DATOS_TECNOLOGIA.map(t => ({
+                label: t.tipo_lampara,
+                data: [{ x: t.kwh_total, y: t.eficiencia_lux_kwh }],
+                backgroundColor: t.color + 'CC',
+                borderColor: t.color,
+                borderWidth: 2,
+                pointRadius: 10 + Math.sqrt(t.total_luminarias) * 0.3,
+                pointHoverRadius: 14
+            }))
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            plugins: {
+                legend: { labels: { font:{ size:10 }, color:'#212529' } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => [
+                            ctx.dataset.label,
+                            `kWh: ${fmtNum(ctx.raw.x, 0)}`,
+                            `Eficiencia: ${fmtNum(ctx.raw.y, 0)} lux/kWh`
+                        ]
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ...OPCIONES_BASE_CHART.scales.x,
+                    title: { display:true, text:'kWh Total', color:'#6C757D', font:{ size:10 } },
+                    ticks: { callback: v => fmtNum(v, 0) }
+                },
+                y: {
+                    ...OPCIONES_BASE_CHART.scales.y,
+                    title: { display:true, text:'Lux / kWh', color:'#6C757D', font:{ size:10 } },
+                    ticks: { callback: v => fmtNum(v, 0) }
+                }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Barras: Anomalías por tecnología
+// ══════════════════════════════════════════════════════════════
+function renderAnomalias() {
+    const ctx = document.getElementById('grafico-anomalias').getContext('2d');
+    if (chartAnom) chartAnom.destroy();
+
+    const sorted = [...DATOS_TECNOLOGIA].sort((a,b) => b.total_anomalias - a.total_anomalias);
+
+    chartAnom = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sorted.map(t => t.tipo_lampara),
+            datasets: [{
+                label: 'Anomalías',
+                data: sorted.map(t => t.total_anomalias),
+                backgroundColor: sorted.map(t => t.color + 'BB'),
+                borderColor:     sorted.map(t => t.color),
+                borderWidth: 1.5,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `Anomalías: ${fmtNum(ctx.raw, 0)}`
+                    }
+                }
+            },
+            scales: {
+                x: { ...OPCIONES_BASE_CHART.scales.x, ticks: { callback: v => fmtNum(v, 0) } },
+                y: { ...OPCIONES_BASE_CHART.scales.y, ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Tabla ordenable
+// ══════════════════════════════════════════════════════════════
+function renderTabla() {
+    const tbody = document.getElementById('tabla-body');
+    const sorted = [...DATOS_TECNOLOGIA].sort((a, b) => {
+        const va = a[ordenTabla.col];
+        const vb = b[ordenTabla.col];
+        if (typeof va === 'string') return ordenTabla.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+        return ordenTabla.asc ? va - vb : vb - va;
+    });
+
+    const maxKwh  = Math.max(...DATOS_TECNOLOGIA.map(t => t.kwh_total));
+    const maxAnom = Math.max(...DATOS_TECNOLOGIA.map(t => t.total_anomalias));
+
+    tbody.innerHTML = sorted.map(t => {
+        const pctKwh  = (t.kwh_total / maxKwh * 100).toFixed(0);
+        const pctAnom = (t.total_anomalias / maxAnom * 100).toFixed(0);
+        return `
+        <tr>
+            <td><span class="${t.badge}">${t.tipo_lampara}</span></td>
+            <td>
+                <div class="pct-bar">
+                    <span>${fmtNum(t.kwh_total, 0)}</span>
+                    <div class="pct-mini"><div class="pct-mini-fill" style="width:${pctKwh}%;background:${t.color};"></div></div>
+                </div>
+            </td>
+            <td>${fmtNum(t.lux_promedio, 0)}</td>
+            <td style="font-weight:600;color:var(--verde);">${fmtNum(t.eficiencia_lux_kwh, 0)}</td>
+            <td>
+                <div class="pct-bar">
+                    <span>${fmtNum(t.total_anomalias, 0)}</span>
+                    <div class="pct-mini"><div class="pct-mini-fill" style="width:${pctAnom}%;background:${t.color};"></div></div>
+                </div>
+            </td>
+            <td>${fmtNum(t.total_luminarias, 0)}</td>
+            <td>
+                <div class="pct-bar">
+                    <span>${fmtPct(t.pct_participacion)}</span>
+                    <div class="pct-mini"><div class="pct-mini-fill" style="width:${t.pct_participacion}%;background:${t.color};"></div></div>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function ordenarTabla(col) {
+    ordenTabla.asc = ordenTabla.col === col ? !ordenTabla.asc : false;
+    ordenTabla.col = col;
+    renderTabla();
+}
+</script>
+</body>
+</html>

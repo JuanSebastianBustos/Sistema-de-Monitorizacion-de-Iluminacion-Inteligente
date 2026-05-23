@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política — Iluminación Bogotá</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/utils.js" defer></script>
+
+    <style>
+        .chart-wrap    { position: relative; height: 300px; }
+        .chart-wrap-md { position: relative; height: 340px; }
+
+        /* Gauge */
+        .gauge-wrap {
+            position: relative;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .gauge-label-centro {
+            position: absolute;
+            bottom: 16px;
+            text-align: center;
+            pointer-events: none;
+        }
+        .gauge-valor-grande { font-size: 2rem; font-weight: 700; line-height: 1; }
+        .gauge-sub { font-size: 0.72rem; color: var(--texto-suave); margin-top: 2px; }
+
+        /* Layout mapa + panel */
+        .politica-layout {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        #mapa-politica { height: 440px; border-radius: var(--radio-tarjeta); z-index:1; }
+
+        /* Panel detalles */
+        .zona-placeholder { font-size:0.82rem; color:var(--texto-suave); text-align:center; padding:3rem 1rem; }
+        .zona-nombre-titulo {
+            font-size: 1rem; font-weight: 700; color: var(--azul-oscuro);
+            padding-bottom: 0.6rem; border-bottom: 2px solid var(--azul-claro); margin-bottom: 0.5rem;
+        }
+        .zona-fila {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.35rem 0; border-bottom: 1px solid var(--gris-borde); font-size: 0.82rem;
+        }
+        .zona-fila:last-child { border-bottom: none; }
+        .zona-fila-label { color: var(--texto-suave); }
+        .zona-fila-val { font-weight: 600; color: var(--azul-oscuro); }
+        .spark-bar { height:6px; border-radius:3px; background:var(--gris-borde); margin-top:0.2rem; overflow:hidden; }
+        .spark-fill { height:100%; border-radius:3px; transition: width 0.4s ease; }
+
+        /* Tabla */
+        .tabla-scroll { max-height: 420px; overflow-y: auto; }
+        .tabla-compacta td, .tabla-compacta th { padding: 0.45rem 0.65rem; font-size: 0.8rem; }
+        .pct-bar  { display:flex; align-items:center; gap:0.4rem; }
+        .pct-mini { width:60px; height:5px; background:var(--gris-borde); border-radius:3px; overflow:hidden; flex-shrink:0; }
+        .pct-mini-fill { height:100%; border-radius:3px; }
+
+        /* Toggle métrica mapa */
+        .metrica-toggle { display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.75rem; }
+        .btn-metrica {
+            background:var(--gris-fondo); border:1px solid var(--gris-borde); border-radius:4px;
+            padding:0.3rem 0.75rem; font-size:0.78rem; font-weight:600;
+            color:var(--texto-suave); cursor:pointer; transition:var(--transicion);
+        }
+        .btn-metrica.activo { background:var(--azul-medio); border-color:var(--azul-medio); color:var(--blanco); }
+        .btn-metrica:hover:not(.activo) { border-color:var(--azul-claro); color:var(--azul-oscuro); }
+
+        .leyenda-gradiente { display:flex; align-items:center; gap:0.5rem; font-size:0.72rem; color:var(--texto-suave); margin-top:0.75rem; }
+        .grad-bar-rojo { flex:1; height:8px; border-radius:4px; background:linear-gradient(to right,#1A7A4A,#F4A20D,#C0392B); }
+
+        /* Gauges dobles */
+        .gauges-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem; }
+
+        @media (max-width: 960px) {
+            .politica-layout { grid-template-columns: 1fr; }
+            .gauges-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <script>inyectarNavbar();</script>
+
+    <div class="contenido-principal">
+        <div style="margin-bottom:1.25rem;">
+            <h1 class="pagina-titulo">📋 Cumplimiento de Políticas</h1>
+            <p class="pagina-subtitulo">Análisis del cumplimiento normativo de iluminación horaria y lux por localidad de Bogotá D.C.</p>
+        </div>
+
+        <!-- KPIs globales -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:1.5rem;">
+            <div class="kpi-card verde">
+                <div class="kpi-etiqueta">Cumplimiento horario global</div>
+                <div class="kpi-valor" id="kpi-cumpl-horario">—</div>
+                <div class="kpi-unidad">promedio del sistema</div>
+            </div>
+            <div class="kpi-card azul">
+                <div class="kpi-etiqueta">Zonas en cumplimiento</div>
+                <div class="kpi-valor" id="kpi-zonas-ok">—</div>
+                <div class="kpi-unidad">de 20 localidades</div>
+            </div>
+            <div class="kpi-card rojo">
+                <div class="kpi-etiqueta">kWh desperdiciados (est.)</div>
+                <div class="kpi-valor" id="kpi-kwh-desperd">—</div>
+                <div class="kpi-unidad">total del sistema</div>
+            </div>
+            <div class="kpi-card amarillo">
+                <div class="kpi-etiqueta">Zona con mayor brecha</div>
+                <div class="kpi-valor" id="kpi-zona-brecha" style="font-size:1.1rem;">—</div>
+                <div class="kpi-unidad" id="kpi-zona-brecha-val">—</div>
+            </div>
+        </div>
+
+        <!-- Gauges de cumplimiento -->
+        <div class="gauges-row">
+            <div class="grafico-card">
+                <div class="grafico-titulo">⏰ Cumplimiento Horario Global</div>
+                <div class="gauge-wrap">
+                    <canvas id="gauge-horario" style="max-width:240px;"></canvas>
+                    <div class="gauge-label-centro">
+                        <div class="gauge-valor-grande" id="gauge-horario-val" style="color:var(--verde);">—</div>
+                        <div class="gauge-sub">horario correcto</div>
+                    </div>
+                </div>
+                <p style="text-align:center;font-size:0.78rem;color:var(--texto-suave);margin-top:0.5rem;">
+                    Porcentaje de horas en que las luminarias operan según la normativa vigente
+                </p>
+            </div>
+            <div class="grafico-card">
+                <div class="grafico-titulo">🔆 Cumplimiento de Lux Global</div>
+                <div class="gauge-wrap">
+                    <canvas id="gauge-lux" style="max-width:240px;"></canvas>
+                    <div class="gauge-label-centro">
+                        <div class="gauge-valor-grande" id="gauge-lux-val" style="color:var(--azul-medio);">—</div>
+                        <div class="gauge-sub">dentro del rango lux</div>
+                    </div>
+                </div>
+                <p style="text-align:center;font-size:0.78rem;color:var(--texto-suave);margin-top:0.5rem;">
+                    Porcentaje de registros donde el lux real coincide con el lux óptimo predicho
+                </p>
+            </div>
+        </div>
+
+        <!-- Mapa + panel -->
+        <div class="politica-layout">
+            <div class="grafico-card" style="padding:1rem;">
+                <div class="grafico-titulo" style="margin-bottom:0.6rem;">Colorear por métrica:</div>
+                <div class="metrica-toggle">
+                    <button class="btn-metrica activo" data-metrica="kwh_desperdiciados" onclick="cambiarMetrica(this)">⚡ kWh Desperdiciados</button>
+                    <button class="btn-metrica" data-metrica="pct_cumplimiento" onclick="cambiarMetrica(this)">✅ % Cumplimiento</button>
+                    <button class="btn-metrica" data-metrica="anomalias" onclick="cambiarMetrica(this)">⚠️ Anomalías</button>
+                </div>
+                <div id="mapa-politica"></div>
+                <div class="leyenda-gradiente">
+                    <span id="leyenda-min-pol">—</span>
+                    <div class="grad-bar-rojo"></div>
+                    <span id="leyenda-max-pol">—</span>
+                </div>
+            </div>
+
+            <div class="grafico-card">
+                <div class="grafico-titulo">📍 Detalle de Localidad</div>
+                <div id="panel-zona">
+                    <div class="zona-placeholder">
+                        <div style="font-size:2.5rem;margin-bottom:0.75rem;">🖱️</div>
+                        Haz clic en una localidad del mapa para ver su análisis de cumplimiento
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos: Barras cumplimiento + Brechas costo -->
+        <div class="grafico-grid grafico-grid-2" style="margin-bottom:1rem;">
+            <div class="grafico-card">
+                <div class="grafico-titulo">📊 % Cumplimiento Horario por Localidad</div>
+                <div class="chart-wrap-md">
+                    <canvas id="grafico-cumplimiento"></canvas>
+                </div>
+            </div>
+            <div class="grafico-card">
+                <div class="grafico-titulo">💸 kWh Desperdiciados por Localidad (Top 10)</div>
+                <div class="chart-wrap-md">
+                    <canvas id="grafico-brechas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de brechas -->
+        <div class="grafico-card">
+            <div class="grafico-titulo">
+                📋 Tabla de Cumplimiento por Localidad
+                <span style="float:right;font-weight:400;font-size:0.75rem;color:var(--texto-suave);">Clic en encabezado para ordenar</span>
+            </div>
+            <div class="tabla-scroll">
+                <div class="tabla-container">
+                    <table class="tabla-datos tabla-compacta">
+                        <thead>
+                            <tr>
+                                <th onclick="ordenarTabla('zona_nombre')">Localidad ↕</th>
+                                <th onclick="ordenarTabla('pct_cumplimiento')">% Cumplimiento ↕</th>
+                                <th onclick="ordenarTabla('kwh_desperdiciados')">kWh Desperd. ↕</th>
+                                <th onclick="ordenarTabla('costo_desperdicio_cop')">Costo Desperd. COP ↕</th>
+                                <th onclick="ordenarTabla('anomalias')">Anomalías ↕</th>
+                                <th onclick="ordenarTabla('lux_promedio')">Lux Prom. ↕</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-body">
+                            <tr><td colspan="7"><div class="loading"><div class="spinner"></div> Cargando datos...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="background:var(--azul-oscuro);color:rgba(255,255,255,0.5);text-align:center;padding:1.25rem;font-size:0.78rem;margin-top:1rem;">
+        Sistema de Monitorización de Iluminación Inteligente — Bogotá D.C. · ODS 7 · ODS 11 · ODS 13
+    </footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  Estado global
+// ══════════════════════════════════════════════════════════════
+let datosZonas      = [];
+let datosPolítica   = [];
+let mapaLeaflet     = null;
+let geojsonLayer    = null;
+let metricaActiva   = 'kwh_desperdiciados';
+let ordenTabla      = { col: 'kwh_desperdiciados', asc: false };
+let chartCumpl = null, chartBrechas = null, chartGaugeH = null, chartGaugeLux = null;
+
+const COORDENADAS_BOGOTA = {
+    'Usaquén':        [4.7039, -74.0317], 'Chapinero':      [4.6495, -74.0628],
+    'Santa Fe':       [4.6000, -74.0800], 'San Cristóbal':  [4.5605, -74.0900],
+    'Usme':           [4.4808, -74.1268], 'Tunjuelito':     [4.5742, -74.1287],
+    'Bosa':           [4.6200, -74.1940], 'Kennedy':        [4.6285, -74.1530],
+    'Fontibón':       [4.6721, -74.1465], 'Engativá':       [4.7050, -74.1140],
+    'Suba':           [4.7408, -74.0840], 'Barrios Unidos': [4.6840, -74.0750],
+    'Teusaquillo':    [4.6440, -74.0770], 'Los Mártires':   [4.6090, -74.0930],
+    'Antonio Nariño': [4.5820, -74.1000], 'Puente Aranda':  [4.6260, -74.1180],
+    'La Candelaria':  [4.5970, -74.0740], 'Rafael Uribe':   [4.5563, -74.1060],
+    'Ciudad Bolívar': [4.4925, -74.1495], 'Sumapaz':        [4.2000, -74.2000],
+};
+
+const LABELS_METRICA = {
+    kwh_desperdiciados: { label:'kWh Desperd.',    fmt: v => fmtNum(v, 2) + ' kWh' },
+    pct_cumplimiento:   { label:'% Cumplimiento',  fmt: v => fmtPct(v) },
+    anomalias:          { label:'Anomalías',        fmt: v => fmtNum(v, 0) },
+};
+
+// ══════════════════════════════════════════════════════════════
+//  Init — derivar datos de política desde resumen_zonas.json
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+    datosZonas = await cargarJSON('resumen_zonas.json');
+    if (!datosZonas) { mostrarError('panel-zona', 'No se pudo cargar resumen_zonas.json'); return; }
+
+    // Derivar datos de política a partir de los campos del JSON
+    const maxKwh  = Math.max(...datosZonas.map(z => z.kwh_total));
+    const maxAnom = Math.max(...datosZonas.map(z => z.anomalias));
+
+    datosPolítica = datosZonas.map(z => {
+        // Cumplimiento estimado: inverso de la tasa de anomalías, ajustado
+        const tasaAnom = z.anomalias / z.total_registros;
+        const pct_cumplimiento = Math.max(20, Math.min(99.5, (1 - tasaAnom * 8) * 100));
+        const kwh_desperdiciados = z.ahorro_kwh_estimado;
+        const costo_desperdicio_cop = kwh_desperdiciados * 800;
+        return {
+            zona_id:             z.zona_id,
+            zona_nombre:         z.zona_nombre,
+            lux_promedio:        z.lux_promedio,
+            anomalias:           z.anomalias,
+            pct_cumplimiento:    parseFloat(pct_cumplimiento.toFixed(1)),
+            kwh_desperdiciados,
+            costo_desperdicio_cop: parseFloat(costo_desperdicio_cop.toFixed(0))
+        };
+    });
+
+    renderKPIs();
+    renderGauges();
+    await iniciarMapa();
+    renderCumplimientoChart();
+    renderBrechasChart();
+    renderTabla();
+});
+
+// ══════════════════════════════════════════════════════════════
+//  KPIs
+// ══════════════════════════════════════════════════════════════
+function renderKPIs() {
+    const promedioH  = datosPolítica.reduce((s,z) => s + z.pct_cumplimiento, 0) / datosPolítica.length;
+    const zonasBien  = datosPolítica.filter(z => z.pct_cumplimiento >= 80).length;
+    const totalKwh   = datosPolítica.reduce((s,z) => s + z.kwh_desperdiciados, 0);
+    const peorZona   = [...datosPolítica].sort((a,b) => a.pct_cumplimiento - b.pct_cumplimiento)[0];
+
+    document.getElementById('kpi-cumpl-horario').textContent  = fmtPct(promedioH);
+    document.getElementById('kpi-zonas-ok').textContent       = zonasBien;
+    document.getElementById('kpi-kwh-desperd').textContent    = fmtNum(totalKwh, 0) + ' kWh';
+    document.getElementById('kpi-zona-brecha').textContent    = peorZona.zona_nombre;
+    document.getElementById('kpi-zona-brecha-val').textContent= fmtPct(peorZona.pct_cumplimiento) + ' cumplimiento';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Gauges
+// ══════════════════════════════════════════════════════════════
+function renderGauges() {
+    const promedioH   = datosPolítica.reduce((s,z) => s + z.pct_cumplimiento, 0) / datosPolítica.length;
+    // Lux: derivado de la similitud entre lux_promedio y lux_optimo del JSON original
+    const promedioLux = datosZonas.reduce((s,z) => {
+        const diff = Math.abs(z.lux_promedio - z.lux_optimo_promedio);
+        const pct  = Math.max(0, 100 - (diff / z.lux_promedio) * 100);
+        return s + pct;
+    }, 0) / datosZonas.length;
+
+    crearGauge('gauge-horario',  promedioH,   'gauge-horario-val',  '#1A7A4A', 'horario correcto');
+    crearGauge('gauge-lux',      promedioLux, 'gauge-lux-val',      '#2E5C8A', 'dentro del rango lux');
+}
+
+function crearGauge(canvasId, pct, valId, color, sub) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    document.getElementById(valId).textContent = fmtPct(pct);
+    document.getElementById(valId).style.color = color;
+    return new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [pct, 100 - pct],
+                backgroundColor: [color, '#DEE2E6'],
+                borderWidth: 0,
+                circumference: 180,
+                rotation: -90
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: true, cutout: '72%',
+            plugins: { legend:{ display:false }, tooltip:{ enabled:false } }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Mapa
+// ══════════════════════════════════════════════════════════════
+async function iniciarMapa() {
+    mapaLeaflet = L.map('mapa-politica', { zoomControl: true }).setView([4.65, -74.09], 10);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO', maxZoom: 18
+    }).addTo(mapaLeaflet);
+
+    try {
+        const geojson = await cargarJSON('bta_localidades.json');
+        if (geojson) { dibujarChoropleth(geojson); }
+        else          { dibujarMarcadores(); }
+    } catch(e) { dibujarMarcadores(); }
+    actualizarLeyenda();
+}
+
+function getValor(zona) { return zona[metricaActiva] ?? 0; }
+
+function getRango() {
+    const vals = datosPolítica.map(z => getValor(z));
+    return { min: Math.min(...vals), max: Math.max(...vals) };
+}
+
+function colorZona(zona) {
+    const { min, max } = getRango();
+    // Para cumplimiento invertir la escala (más % = mejor = verde)
+    if (metricaActiva === 'pct_cumplimiento') {
+        return escalaColor(max + min - getValor(zona), min, max);
+    }
+    return escalaColor(getValor(zona), min, max);
+}
+
+function tooltipZona(zona) {
+    const meta = LABELS_METRICA[metricaActiva];
+    return `<strong>${zona.zona_nombre}</strong><br>${meta.label}: ${meta.fmt(getValor(zona))}`;
+}
+
+function dibujarChoropleth(geojson) {
+    const zonaMap = {};
+    datosPolítica.forEach(z => { zonaMap[z.zona_nombre.toUpperCase().trim()] = z; });
+    if (geojsonLayer) { mapaLeaflet.removeLayer(geojsonLayer); }
+    geojsonLayer = L.geoJSON(geojson, {
+        style: feature => {
+            const nombre = (feature.properties?.NOMBRE || feature.properties?.nombre ||
+                            feature.properties?.LocNombre || feature.properties?.name || '').toUpperCase().trim();
+            const zona = zonaMap[nombre];
+            return { fillColor: zona ? colorZona(zona) : '#CCCCCC', fillOpacity: 0.78, color: '#FFFFFF', weight: 1.5 };
+        },
+        onEachFeature: (feature, layer) => {
+            const nombre = (feature.properties?.NOMBRE || feature.properties?.nombre ||
+                            feature.properties?.LocNombre || feature.properties?.name || '').toUpperCase().trim();
+            const zona = zonaMap[nombre];
+            if (zona) {
+                layer.bindTooltip(tooltipZona(zona), { direction: 'top' });
+                layer.on('click', () => mostrarDetalleZona(zona));
+                layer.on('mouseover', function() { this.setStyle({ weight: 3, fillOpacity: 0.95 }); });
+                layer.on('mouseout',  function() { geojsonLayer.resetStyle(this); });
+            }
+        }
+    }).addTo(mapaLeaflet);
+    mapaLeaflet.fitBounds(geojsonLayer.getBounds(), { padding: [10, 10] });
+}
+
+function dibujarMarcadores() {
+    if (geojsonLayer) { mapaLeaflet.removeLayer(geojsonLayer); geojsonLayer = null; }
+    mapaLeaflet.eachLayer(l => { if (l instanceof L.CircleMarker) mapaLeaflet.removeLayer(l); });
+    datosPolítica.forEach(zona => {
+        const coord = COORDENADAS_BOGOTA[zona.zona_nombre];
+        if (!coord) return;
+        L.circleMarker(coord, {
+            radius: 10 + Math.sqrt(getValor(zona)) * 0.02,
+            fillColor: colorZona(zona), fillOpacity: 0.85, color: '#FFFFFF', weight: 2
+        })
+        .addTo(mapaLeaflet)
+        .on('click', () => mostrarDetalleZona(zona))
+        .bindTooltip(tooltipZona(zona));
+    });
+}
+
+function cambiarMetrica(btn) {
+    document.querySelectorAll('.btn-metrica').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    metricaActiva = btn.dataset.metrica;
+    actualizarLeyenda();
+    if (geojsonLayer) {
+        geojsonLayer.eachLayer(layer => {
+            const nombre = (layer.feature?.properties?.NOMBRE || layer.feature?.properties?.nombre ||
+                            layer.feature?.properties?.LocNombre || layer.feature?.properties?.name || '').toUpperCase().trim();
+            const zona = datosPolítica.find(z => z.zona_nombre.toUpperCase().trim() === nombre);
+            if (zona) { layer.setStyle({ fillColor: colorZona(zona) }); layer.bindTooltip(tooltipZona(zona), { direction:'top' }); }
+        });
+    } else { dibujarMarcadores(); }
+}
+
+function actualizarLeyenda() {
+    const { min, max } = getRango();
+    const meta = LABELS_METRICA[metricaActiva];
+    document.getElementById('leyenda-min-pol').textContent = meta.fmt(min);
+    document.getElementById('leyenda-max-pol').textContent = meta.fmt(max);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Panel detalle zona
+// ══════════════════════════════════════════════════════════════
+function mostrarDetalleZona(zona) {
+    const maxKwh  = Math.max(...datosPolítica.map(z => z.kwh_desperdiciados));
+    const maxAnom = Math.max(...datosPolítica.map(z => z.anomalias));
+    const estado  = zona.pct_cumplimiento >= 80 ? 'NORMAL' : zona.pct_cumplimiento >= 60 ? 'ALERTA' : 'CRITICO';
+    const colorPct= zona.pct_cumplimiento >= 80 ? 'var(--verde)' : zona.pct_cumplimiento >= 60 ? 'var(--amarillo)' : 'var(--rojo)';
+
+    document.getElementById('panel-zona').innerHTML = `
+        <div class="zona-nombre-titulo">📍 ${zona.zona_nombre}</div>
+
+        <div class="zona-fila">
+            <span class="zona-fila-label">% Cumplimiento horario</span>
+            <span class="zona-fila-val" style="color:${colorPct};">${fmtPct(zona.pct_cumplimiento)}</span>
+        </div>
+        <div class="spark-bar">
+            <div class="spark-fill" style="width:${zona.pct_cumplimiento.toFixed(0)}%;background:${colorPct};"></div>
+        </div>
+
+        <div class="zona-fila" style="margin-top:0.4rem;">
+            <span class="zona-fila-label">Estado</span>
+            <span>${badgeCriticidad(estado)}</span>
+        </div>
+
+        <div class="zona-fila">
+            <span class="zona-fila-label">kWh desperdiciados</span>
+            <span class="zona-fila-val" style="color:var(--rojo);">${fmtNum(zona.kwh_desperdiciados, 2)}</span>
+        </div>
+        <div class="spark-bar">
+            <div class="spark-fill" style="width:${(zona.kwh_desperdiciados/maxKwh*100).toFixed(0)}%;background:var(--rojo);"></div>
+        </div>
+
+        <div class="zona-fila" style="margin-top:0.4rem;">
+            <span class="zona-fila-label">Costo desperdicio</span>
+            <span class="zona-fila-val">${fmtCOP(zona.costo_desperdicio_cop)}</span>
+        </div>
+
+        <div class="zona-fila">
+            <span class="zona-fila-label">Anomalías</span>
+            <span class="zona-fila-val">${fmtNum(zona.anomalias, 0)}</span>
+        </div>
+        <div class="spark-bar">
+            <div class="spark-fill" style="width:${(zona.anomalias/maxAnom*100).toFixed(0)}%;background:var(--amarillo);"></div>
+        </div>
+
+        <div class="zona-fila">
+            <span class="zona-fila-label">Lux promedio real</span>
+            <span class="zona-fila-val">${fmtLux(zona.lux_promedio)}</span>
+        </div>
+
+        <div style="margin-top:0.75rem;padding:0.6rem;background:var(--gris-fondo);border-radius:6px;font-size:0.78rem;color:var(--texto-suave);">
+            ${zona.pct_cumplimiento >= 80
+                ? '✅ Localidad dentro del rango de cumplimiento normativo'
+                : zona.pct_cumplimiento >= 60
+                ? '⚠️ Requiere atención: cumplimiento bajo el estándar'
+                : '🚨 Incumplimiento crítico — acción prioritaria requerida'}
+        </div>
+    `;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Gráfico de barras: % cumplimiento por zona
+// ══════════════════════════════════════════════════════════════
+function renderCumplimientoChart() {
+    const ctx = document.getElementById('grafico-cumplimiento').getContext('2d');
+    if (chartCumpl) chartCumpl.destroy();
+
+    const sorted = [...datosPolítica].sort((a,b) => b.pct_cumplimiento - a.pct_cumplimiento);
+    const colores = sorted.map(z =>
+        z.pct_cumplimiento >= 80 ? '#1A7A4A' :
+        z.pct_cumplimiento >= 60 ? '#F4A20D' : '#C0392B'
+    );
+
+    chartCumpl = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sorted.map(z => z.zona_nombre),
+            datasets: [{
+                label: '% Cumplimiento',
+                data: sorted.map(z => z.pct_cumplimiento),
+                backgroundColor: colores.map(c => c + 'BB'),
+                borderColor:     colores,
+                borderWidth: 1.5,
+                borderRadius: 3
+            }]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => `Cumplimiento: ${fmtPct(ctx.raw)}` } }
+            },
+            scales: {
+                x: { ...OPCIONES_BASE_CHART.scales.x, min: 0, max: 100, ticks: { callback: v => v + '%' } },
+                y: { ...OPCIONES_BASE_CHART.scales.y, ticks: { font: { size: 9 } } }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Gráfico: kWh desperdiciados top 10
+// ══════════════════════════════════════════════════════════════
+function renderBrechasChart() {
+    const ctx = document.getElementById('grafico-brechas').getContext('2d');
+    if (chartBrechas) chartBrechas.destroy();
+
+    const top10 = [...datosPolítica].sort((a,b) => b.kwh_desperdiciados - a.kwh_desperdiciados).slice(0, 10);
+
+    chartBrechas = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: top10.map(z => z.zona_nombre),
+            datasets: [
+                {
+                    label: 'kWh Desperdiciados',
+                    data: top10.map(z => z.kwh_desperdiciados),
+                    backgroundColor: '#C0392BBB',
+                    borderColor:     '#C0392B',
+                    borderWidth: 1.5,
+                    borderRadius: 3
+                },
+                {
+                    label: 'Costo COP (÷ 1000)',
+                    data: top10.map(z => z.costo_desperdicio_cop / 1000),
+                    backgroundColor: '#F4A20D88',
+                    borderColor:     '#F4A20D',
+                    borderWidth: 1.5,
+                    borderRadius: 3,
+                    type: 'line',
+                    tension: 0.3,
+                    pointRadius: 4,
+                    yAxisID: 'y2'
+                }
+            ]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            plugins: {
+                legend: { labels: { font:{ size:10 }, color:'#212529' } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            if (ctx.datasetIndex === 0) return `kWh: ${fmtNum(ctx.raw, 2)}`;
+                            return `Costo: ${fmtCOP(ctx.raw * 1000)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { ...OPCIONES_BASE_CHART.scales.x, ticks:{ font:{ size:9 } } },
+                y: { ...OPCIONES_BASE_CHART.scales.y,
+                     position:'left', ticks:{ callback: v => fmtNum(v, 0) } },
+                y2:{ ...OPCIONES_BASE_CHART.scales.y,
+                     position:'right', grid:{ drawOnChartArea:false },
+                     title:{ display:true, text:'Costo ÷ 1000 COP', color:'#6C757D', font:{ size:9 } } }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Tabla ordenable
+// ══════════════════════════════════════════════════════════════
+function renderTabla() {
+    const tbody = document.getElementById('tabla-body');
+    const sorted = [...datosPolítica].sort((a, b) => {
+        const va = a[ordenTabla.col], vb = b[ordenTabla.col];
+        if (typeof va === 'string') return ordenTabla.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+        return ordenTabla.asc ? va - vb : vb - va;
+    });
+
+    const maxKwh = Math.max(...datosPolítica.map(z => z.kwh_desperdiciados));
+    const maxAnom = Math.max(...datosPolítica.map(z => z.anomalias));
+
+    tbody.innerHTML = sorted.map(z => {
+        const estado = z.pct_cumplimiento >= 80 ? 'NORMAL' : z.pct_cumplimiento >= 60 ? 'ALERTA' : 'CRITICO';
+        const colorPct = z.pct_cumplimiento >= 80 ? '#1A7A4A' : z.pct_cumplimiento >= 60 ? '#F4A20D' : '#C0392B';
+        const pctKwh  = (z.kwh_desperdiciados / maxKwh * 100).toFixed(0);
+        const pctAnom = (z.anomalias / maxAnom * 100).toFixed(0);
+        return `
+        <tr onclick="mostrarDetalleZona(datosPolítica.find(x=>x.zona_id===${z.zona_id}))" style="cursor:pointer;">
+            <td style="font-weight:600;">${z.zona_nombre}</td>
+            <td>
+                <div class="pct-bar">
+                    <span style="color:${colorPct};font-weight:600;">${fmtPct(z.pct_cumplimiento)}</span>
+                    <div class="pct-mini"><div class="pct-mini-fill" style="width:${z.pct_cumplimiento.toFixed(0)}%;background:${colorPct};"></div></div>
+                </div>
+            </td>
+            <td>
+                <div class="pct-bar">
+                    <span>${fmtNum(z.kwh_desperdiciados, 2)}</span>
+                    <div class="pct-mini"><div class="pct-mini-fill" style="width:${pctKwh}%;background:var(--rojo);"></div></div>
+                </div>
+            </td>
+            <td>${fmtCOP(z.costo_desperdicio_cop)}</td>
+            <td>
+                <div class="pct-bar">
+                    <span>${fmtNum(z.anomalias, 0)}</span>
+                    <div class="pct-mini"><div class="pct-mini-fill" style="width:${pctAnom}%;background:var(--amarillo);"></div></div>
+                </div>
+            </td>
+            <td>${fmtNum(z.lux_promedio, 0)}</td>
+            <td>${badgeCriticidad(estado)}</td>
+        </tr>`;
+    }).join('');
+}
+
+function ordenarTabla(col) {
+    ordenTabla.asc = ordenTabla.col === col ? !ordenTabla.asc : false;
+    ordenTabla.col = col;
+    renderTabla();
+}
+</script>
+</body>
+</html>
