@@ -185,71 +185,39 @@
 //  (el DW tiene tipos de lámpara; aquí se usan datos
 //   representativos consistentes con los valores del sistema)
 // ══════════════════════════════════════════════════════════════
-const DATOS_TECNOLOGIA = [
-    {
-        tipo_lampara:       'LED',
-        kwh_total:          8200.45,
-        lux_promedio:       11980.50,
-        eficiencia_lux_kwh: 1460.95,
-        total_anomalias:    1842,
-        total_luminarias:   2450,
-        pct_participacion:  49.0,
-        color:              '#1A7A4A',
-        badge:              'badge-led'
-    },
-    {
-        tipo_lampara:       'Sodio Alta Presión',
-        kwh_total:          12540.30,
-        lux_promedio:       11860.20,
-        eficiencia_lux_kwh: 945.78,
-        total_anomalias:    3210,
-        total_luminarias:   1380,
-        pct_participacion:  27.6,
-        color:              '#F4A20D',
-        badge:              'badge-sodio'
-    },
-    {
-        tipo_lampara:       'Haluro Metálico',
-        kwh_total:          5830.10,
-        lux_promedio:       12150.80,
-        eficiencia_lux_kwh: 2083.44,
-        total_anomalias:    890,
-        total_luminarias:   620,
-        pct_participacion:  12.4,
-        color:              '#5B9BD5',
-        badge:              'badge-haluro'
-    },
-    {
-        tipo_lampara:       'Mercurio',
-        kwh_total:          3920.75,
-        lux_promedio:       11540.60,
-        eficiencia_lux_kwh: 2944.01,
-        total_anomalias:    4660,
-        total_luminarias:   410,
-        pct_participacion:  8.2,
-        color:              '#C0392B',
-        badge:              'badge-mercurio'
-    },
-    {
-        tipo_lampara:       'Inducción',
-        kwh_total:          1415.90,
-        lux_promedio:       12320.40,
-        eficiencia_lux_kwh: 8701.13,
-        total_anomalias:    245,
-        total_luminarias:   140,
-        pct_participacion:  2.8,
-        color:              '#8E44AD',
-        badge:              'badge-induccion'
-    }
-];
+// ══════════════════════════════════════════════════════════════
+//  Mapa de estilos por tecnología (consistente con el diseño)
+// ══════════════════════════════════════════════════════════════
+const TECH_STYLE = {
+    'LED':                { color: '#1A7A4A', badge: 'badge-led' },
+    'Sodio Alta Presión':  { color: '#C0392B', badge: 'badge-sodio' },
+    'Haluro Metálico':     { color: '#F4A20D', badge: 'badge-haluro' },
+    'Mercurio':            { color: '#C0392B', badge: 'badge-mercurio' },
+    'Inducción':           { color: '#8E44AD', badge: 'badge-induccion' },
+};
 
+function resolverEstilo(tipo) {
+    return TECH_STYLE[tipo] || { color: '#6C757D', badge: 'badge-normal' };
+}
+
+let DATOS_TECNOLOGIA = [];
 let ordenTabla = { col: 'kwh_total', asc: false };
 let chartBarras = null, chartGauge = null, chartScatter = null, chartAnom = null;
 
 // ══════════════════════════════════════════════════════════════
-//  Init
+//  Init — cargar consumo_por_tecnologia.json
 // ══════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    const raw = await cargarJSON('consumo_por_tecnologia.json');
+    if (!raw) { mostrarError('kpi-mas-eficiente', 'No se pudo cargar consumo_por_tecnologia.json'); return; }
+
+    // Enriquecer cada objeto con color y badge desde el mapa de estilos
+    DATOS_TECNOLOGIA = raw.map(t => ({
+        ...t,
+        color: resolverEstilo(t.tipo_lampara).color,
+        badge: resolverEstilo(t.tipo_lampara).badge,
+    }));
+
     renderKPIs();
     renderBarrasAgrupadas();
     renderGaugeLED();

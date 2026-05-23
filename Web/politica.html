@@ -255,34 +255,38 @@ const COORDENADAS_BOGOTA = {
 const LABELS_METRICA = {
     kwh_desperdiciados: { label:'kWh Desperd.',    fmt: v => fmtNum(v, 2) + ' kWh' },
     pct_cumplimiento:   { label:'% Cumplimiento',  fmt: v => fmtPct(v) },
-    anomalias:          { label:'Anomalías',        fmt: v => fmtNum(v, 0) },
+    total_anomalias:    { label:'Anomalías',        fmt: v => fmtNum(v, 0) },
 };
 
 // ══════════════════════════════════════════════════════════════
-//  Init — derivar datos de política desde resumen_zonas.json
+//  Init — cargar cumplimiento_politicas.json (datos reales)
 // ══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
-    datosZonas = await cargarJSON('resumen_zonas.json');
-    if (!datosZonas) { mostrarError('panel-zona', 'No se pudo cargar resumen_zonas.json'); return; }
+    const [politicasData, zonaData] = await Promise.all([
+        cargarJSON('cumplimiento_politicas.json'),
+        cargarJSON('consumo_por_zona.json'),
+    ]);
+    if (!politicasData) { mostrarError('panel-zona', 'No se pudo cargar cumplimiento_politicas.json'); return; }
 
-    // Derivar datos de política a partir de los campos del JSON
-    const maxKwh  = Math.max(...datosZonas.map(z => z.kwh_total));
-    const maxAnom = Math.max(...datosZonas.map(z => z.anomalias));
+    datosZonas = zonaData || [];
+    window._politicaGlobales = politicasData.globales;
 
-    datosPolítica = datosZonas.map(z => {
-        // Cumplimiento estimado: inverso de la tasa de anomalías, ajustado
-        const tasaAnom = z.anomalias / z.total_registros;
-        const pct_cumplimiento = Math.max(20, Math.min(99.5, (1 - tasaAnom * 8) * 100));
-        const kwh_desperdiciados = z.ahorro_kwh_estimado;
-        const costo_desperdicio_cop = kwh_desperdiciados * 800;
+    datosPolítica = politicasData.por_zona.map(z => {
+        const zonaRef = datosZonas.find(d => d.zona_id === z.zona_id) || {};
         return {
-            zona_id:             z.zona_id,
-            zona_nombre:         z.zona_nombre,
-            lux_promedio:        z.lux_promedio,
-            anomalias:           z.anomalias,
-            pct_cumplimiento:    parseFloat(pct_cumplimiento.toFixed(1)),
-            kwh_desperdiciados,
-            costo_desperdicio_cop: parseFloat(costo_desperdicio_cop.toFixed(0))
+            zona_id:               z.zona_id,
+            zona_nombre:           z.nombre_zona,
+            latitud:               z.latitud,
+            longitud:              z.longitud,
+            lux_promedio:          zonaRef.lux_promedio ?? 0,
+            total_anomalias:       zonaRef.total_anomalias ?? 0,
+            pct_cumplimiento:      z.pct_cumplimiento_horario ?? 0,
+            pct_cumplimiento_lux:  z.pct_cumplimiento_lux ?? 0,
+            kwh_desperdiciados:    z.kwh_desperdiciados ?? 0,
+            costo_desperdicio_cop: z.costo_desperdicio_cop ?? 0,
+            registros_sin_servicio: z.registros_sin_servicio ?? 0,
+            lux_umbral_politica:   z.lux_umbral_politica ?? 0,
+            brecha_lux_promedio:   z.brecha_lux_promedio ?? 0,
         };
     });
 
@@ -300,7 +304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function renderKPIs() {
     const promedioH  = datosPolítica.reduce((s,z) => s + z.pct_cumplimiento, 0) / datosPolítica.length;
     const zonasBien  = datosPolítica.filter(z => z.pct_cumplimiento >= 80).length;
-    const totalKwh   = datosPolítica.reduce((s,z) => s + z.kwh_desperdiciados, 0);
+    const totalKwh   = (window._politicaGlobales?.kwh_desperdiciados) ?? datosPolítica.reduce((s,z) => s + z.kwh_desperdiciados, 0);
     const peorZona   = [...datosPolítica].sort((a,b) => a.pct_cumplimiento - b.pct_cumplimiento)[0];
 
     document.getElementById('kpi-cumpl-horario').textContent  = fmtPct(promedioH);
@@ -314,13 +318,12 @@ function renderKPIs() {
 //  Gauges
 // ══════════════════════════════════════════════════════════════
 function renderGauges() {
-    const promedioH   = datosPolítica.reduce((s,z) => s + z.pct_cumplimiento, 0) / datosPolítica.length;
-    // Lux: derivado de la similitud entre lux_promedio y lux_optimo del JSON original
-    const promedioLux = datosZonas.reduce((s,z) => {
-        const diff = Math.abs(z.lux_promedio - z.lux_optimo_promedio);
-        const pct  = Math.max(0, 100 - (diff / z.lux_promedio) * 100);
-        return s + pct;
-    }, 0) / datosZonas.length;
+    // Usar valores reales de cumplimiento_politicas.json → globales
+    const globales    = window._politicaGlobales || {};
+    const promedioH   = globales.pct_cumplimiento_horario
+                        ?? (datosPolítica.reduce((s,z) => s + z.pct_cumplimiento, 0) / datosPolítica.length);
+    const promedioLux = globales.pct_cumplimiento_lux
+                        ?? (datosPolítica.reduce((s,z) => s + (z.pct_cumplimiento_lux ?? z.pct_cumplimiento), 0) / datosPolítica.length);
 
     crearGauge('gauge-horario',  promedioH,   'gauge-horario-val',  '#1A7A4A', 'horario correcto');
     crearGauge('gauge-lux',      promedioLux, 'gauge-lux-val',      '#2E5C8A', 'dentro del rango lux');
@@ -455,7 +458,7 @@ function actualizarLeyenda() {
 // ══════════════════════════════════════════════════════════════
 function mostrarDetalleZona(zona) {
     const maxKwh  = Math.max(...datosPolítica.map(z => z.kwh_desperdiciados));
-    const maxAnom = Math.max(...datosPolítica.map(z => z.anomalias));
+    const maxAnom = Math.max(...datosPolítica.map(z => z.total_anomalias));
     const estado  = zona.pct_cumplimiento >= 80 ? 'NORMAL' : zona.pct_cumplimiento >= 60 ? 'ALERTA' : 'CRITICO';
     const colorPct= zona.pct_cumplimiento >= 80 ? 'var(--verde)' : zona.pct_cumplimiento >= 60 ? 'var(--amarillo)' : 'var(--rojo)';
 
@@ -490,10 +493,10 @@ function mostrarDetalleZona(zona) {
 
         <div class="zona-fila">
             <span class="zona-fila-label">Anomalías</span>
-            <span class="zona-fila-val">${fmtNum(zona.anomalias, 0)}</span>
+            <span class="zona-fila-val">${fmtNum(zona.total_anomalias, 0)}</span>
         </div>
         <div class="spark-bar">
-            <div class="spark-fill" style="width:${(zona.anomalias/maxAnom*100).toFixed(0)}%;background:var(--amarillo);"></div>
+            <div class="spark-fill" style="width:${(zona.total_anomalias/maxAnom*100).toFixed(0)}%;background:var(--amarillo);"></div>
         </div>
 
         <div class="zona-fila">
@@ -625,13 +628,13 @@ function renderTabla() {
     });
 
     const maxKwh = Math.max(...datosPolítica.map(z => z.kwh_desperdiciados));
-    const maxAnom = Math.max(...datosPolítica.map(z => z.anomalias));
+    const maxAnom = Math.max(...datosPolítica.map(z => z.total_anomalias));
 
     tbody.innerHTML = sorted.map(z => {
         const estado = z.pct_cumplimiento >= 80 ? 'NORMAL' : z.pct_cumplimiento >= 60 ? 'ALERTA' : 'CRITICO';
         const colorPct = z.pct_cumplimiento >= 80 ? '#1A7A4A' : z.pct_cumplimiento >= 60 ? '#F4A20D' : '#C0392B';
         const pctKwh  = (z.kwh_desperdiciados / maxKwh * 100).toFixed(0);
-        const pctAnom = (z.anomalias / maxAnom * 100).toFixed(0);
+        const pctAnom = (z.total_anomalias / maxAnom * 100).toFixed(0);
         return `
         <tr onclick="mostrarDetalleZona(datosPolítica.find(x=>x.zona_id===${z.zona_id}))" style="cursor:pointer;">
             <td style="font-weight:600;">${z.zona_nombre}</td>
@@ -650,7 +653,7 @@ function renderTabla() {
             <td>${fmtCOP(z.costo_desperdicio_cop)}</td>
             <td>
                 <div class="pct-bar">
-                    <span>${fmtNum(z.anomalias, 0)}</span>
+                    <span>${fmtNum(z.total_anomalias, 0)}</span>
                     <div class="pct-mini"><div class="pct-mini-fill" style="width:${pctAnom}%;background:var(--amarillo);"></div></div>
                 </div>
             </td>

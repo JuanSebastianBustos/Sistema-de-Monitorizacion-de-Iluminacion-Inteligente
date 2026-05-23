@@ -256,7 +256,7 @@
                                 <th onclick="ordenarTabla('kwh_total')">kWh Total ↕</th>
                                 <th onclick="ordenarTabla('costo_cop_total')">Costo COP ↕</th>
                                 <th onclick="ordenarTabla('lux_promedio')">Lux Prom. ↕</th>
-                                <th onclick="ordenarTabla('anomalias')">Anomalías ↕</th>
+                                <th onclick="ordenarTabla('total_anomalias')">Anomalías ↕</th>
                                 <th onclick="ordenarTabla('ahorro_kwh_estimado')">Ahorro kWh ↕</th>
                                 <th onclick="ordenarTabla('total_registros')">Registros ↕</th>
                             </tr>
@@ -312,7 +312,7 @@ const COORDENADAS_BOGOTA = {
 
 const LABELS_METRICA = {
     kwh_total:           { label: 'kWh Total',    fmt: v => fmtNum(v, 0) + ' kWh' },
-    anomalias:           { label: 'Anomalías',     fmt: v => fmtNum(v, 0) },
+    total_anomalias:     { label: 'Anomalías',     fmt: v => fmtNum(v, 0) },
     ahorro_kwh_estimado: { label: 'Ahorro (kWh)',  fmt: v => fmtNum(v, 2) + ' kWh' },
     lux_promedio:        { label: 'Lux Promedio',  fmt: v => fmtNum(v, 0) + ' lux' },
 };
@@ -321,8 +321,8 @@ const LABELS_METRICA = {
 //  Init
 // ══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
-    datosZonas = await cargarJSON('resumen_zonas.json');
-    if (!datosZonas) { mostrarError('zona-panel', 'No se pudo cargar resumen_zonas.json'); return; }
+    datosZonas = await cargarJSON('consumo_por_zona.json');
+    if (!datosZonas) { mostrarError('zona-panel', 'No se pudo cargar consumo_por_zona.json'); return; }
 
     renderKPIsResumen();
     await iniciarMapa();
@@ -339,13 +339,13 @@ function renderKPIsResumen() {
     const porAnom   = [...datosZonas].sort((a,b) => b.anomalias - a.anomalias);
     const porAhorro = [...datosZonas].sort((a,b) => b.ahorro_kwh_estimado - a.ahorro_kwh_estimado);
 
-    document.getElementById('kpi-zona-max').textContent     = porKwh[0].zona_nombre;
+    document.getElementById('kpi-zona-max').textContent     = porKwh[0].nombre_zona;
     document.getElementById('kpi-zona-max-val').textContent = fmtNum(porKwh[0].kwh_total, 0) + ' kWh';
-    document.getElementById('kpi-zona-min').textContent     = porKwh[porKwh.length-1].zona_nombre;
+    document.getElementById('kpi-zona-min').textContent     = porKwh[porKwh.length-1].nombre_zona;
     document.getElementById('kpi-zona-min-val').textContent = fmtNum(porKwh[porKwh.length-1].kwh_total, 0) + ' kWh';
-    document.getElementById('kpi-zona-anom').textContent    = porAnom[0].zona_nombre;
-    document.getElementById('kpi-zona-anom-val').textContent= fmtNum(porAnom[0].anomalias, 0) + ' anomalías';
-    document.getElementById('kpi-zona-ahorro').textContent  = porAhorro[0].zona_nombre;
+    document.getElementById('kpi-zona-anom').textContent    = porAnom[0].nombre_zona;
+    document.getElementById('kpi-zona-anom-val').textContent= fmtNum(porAnom[0].total_anomalias, 0) + ' anomalías';
+    document.getElementById('kpi-zona-ahorro').textContent  = porAhorro[0].nombre_zona;
     document.getElementById('kpi-zona-ahorro-val').textContent = fmtNum(porAhorro[0].ahorro_kwh_estimado, 2) + ' kWh';
 }
 
@@ -388,7 +388,7 @@ function colorZona(zona) {
 function dibujarChoropleth(geojson) {
     const zonaMap = {};
     datosZonas.forEach(z => {
-        zonaMap[z.zona_nombre.toUpperCase().trim()] = z;
+        zonaMap[z.nombre_zona.toUpperCase().trim()] = z;
     });
 
     if (geojsonLayer) { mapaLeaflet.removeLayer(geojsonLayer); }
@@ -421,7 +421,7 @@ function dibujarChoropleth(geojson) {
             if (zona) {
                 const metaLabel = LABELS_METRICA[metricaActiva];
                 layer.bindTooltip(
-                    `<strong>${zona.zona_nombre}</strong><br>${metaLabel.label}: ${metaLabel.fmt(getValorMetrica(zona))}`,
+                    `<strong>${zona.nombre_zona}</strong><br>${metaLabel.label}: ${metaLabel.fmt(getValorMetrica(zona))}`,
                     { direction: 'top' }
                 );
                 layer.on('click', () => mostrarDetalleZona(zona));
@@ -440,7 +440,7 @@ function dibujarMarcadores() {
     mapaLeaflet.eachLayer(l => { if (l instanceof L.CircleMarker) mapaLeaflet.removeLayer(l); });
 
     datosZonas.forEach(zona => {
-        const coord = COORDENADAS_BOGOTA[zona.zona_nombre];
+        const coord = COORDENADAS_BOGOTA[zona.nombre_zona];
         if (!coord) return;
         L.circleMarker(coord, {
             radius: 10 + Math.sqrt(getValorMetrica(zona)) * 0.01,
@@ -451,7 +451,7 @@ function dibujarMarcadores() {
         })
         .addTo(mapaLeaflet)
         .on('click', () => mostrarDetalleZona(zona))
-        .bindTooltip(`<strong>${zona.zona_nombre}</strong><br>${LABELS_METRICA[metricaActiva].label}: ${LABELS_METRICA[metricaActiva].fmt(getValorMetrica(zona))}`);
+        .bindTooltip(`<strong>${zona.nombre_zona}</strong><br>${LABELS_METRICA[metricaActiva].label}: ${LABELS_METRICA[metricaActiva].fmt(getValorMetrica(zona))}`);
     });
 }
 
@@ -470,12 +470,12 @@ function cambiarMetrica(btn) {
                 layer.feature?.properties?.LocNombre ||
                 layer.feature?.properties?.name || ''
             ).toUpperCase().trim();
-            const zona = datosZonas.find(z => z.zona_nombre.toUpperCase().trim() === nombre);
+            const zona = datosZonas.find(z => z.nombre_zona.toUpperCase().trim() === nombre);
             if (zona) {
                 layer.setStyle({ fillColor: colorZona(zona) });
                 const metaLabel = LABELS_METRICA[metricaActiva];
                 layer.bindTooltip(
-                    `<strong>${zona.zona_nombre}</strong><br>${metaLabel.label}: ${metaLabel.fmt(getValorMetrica(zona))}`,
+                    `<strong>${zona.nombre_zona}</strong><br>${metaLabel.label}: ${metaLabel.fmt(getValorMetrica(zona))}`,
                     { direction: 'top' }
                 );
             }
@@ -497,16 +497,16 @@ function actualizarLeyenda() {
 // ══════════════════════════════════════════════════════════════
 function mostrarDetalleZona(zona) {
     const maxKwh    = Math.max(...datosZonas.map(z => z.kwh_total));
-    const maxAnom   = Math.max(...datosZonas.map(z => z.anomalias));
+    const maxAnom   = Math.max(...datosZonas.map(z => z.total_anomalias));
     const maxAhorro = Math.max(...datosZonas.map(z => z.ahorro_kwh_estimado));
     const pctAhorro = zona.kwh_total > 0
         ? (zona.ahorro_kwh_estimado / zona.kwh_total * 100).toFixed(1) : '0.0';
 
     const colorKwh  = escalaColor(zona.kwh_total, 0, maxKwh);
-    const colorAnom = escalaColor(zona.anomalias,  0, maxAnom);
+    const colorAnom = escalaColor(zona.total_anomalias,  0, maxAnom);
 
     document.getElementById('zona-panel').innerHTML = `
-        <div class="zona-nombre-titulo">📍 ${zona.zona_nombre}</div>
+        <div class="zona-nombre-titulo">📍 ${zona.nombre_zona}</div>
 
         <div class="zona-fila">
             <span class="zona-fila-label">kWh Total</span>
@@ -532,10 +532,10 @@ function mostrarDetalleZona(zona) {
 
         <div class="zona-fila">
             <span class="zona-fila-label">Anomalías</span>
-            <span class="zona-fila-val" style="color:var(--rojo);">${fmtNum(zona.anomalias, 0)}</span>
+            <span class="zona-fila-val" style="color:var(--rojo);">${fmtNum(zona.total_anomalias, 0)}</span>
         </div>
         <div class="spark-bar">
-            <div class="spark-fill" style="width:${(zona.anomalias/maxAnom*100).toFixed(1)}%;background:${colorAnom};"></div>
+            <div class="spark-fill" style="width:${(zona.total_anomalias/maxAnom*100).toFixed(1)}%;background:${colorAnom};"></div>
         </div>
 
         <div class="zona-fila" style="margin-top:0.4rem;">
@@ -571,7 +571,7 @@ function renderRanking() {
     chartRanking = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: sorted.map(z => z.zona_nombre),
+            labels: sorted.map(z => z.nombre_zona),
             datasets: [{
                 label: 'kWh Total',
                 data: sorted.map(z => z.kwh_total),
@@ -593,7 +593,7 @@ function renderRanking() {
                             return [
                                 `kWh: ${fmtNum(ctx.raw, 2)}`,
                                 `Costo: ${fmtCOP(z.costo_cop_total)}`,
-                                `Anomalías: ${fmtNum(z.anomalias, 0)}`
+                                `Anomalías: ${fmtNum(z.total_anomalias, 0)}`
                             ];
                         }
                     }
@@ -628,7 +628,7 @@ function renderScatter() {
         data: {
             datasets: [{
                 label: 'Localidades',
-                data: datosZonas.map(z => ({ x: z.kwh_total, y: z.anomalias, zona: z })),
+                data: datosZonas.map(z => ({ x: z.kwh_total, y: z.total_anomalias, zona: z })),
                 backgroundColor: datosZonas.map(z => escalaColor(z.kwh_total, minKwh, maxKwh) + 'CC'),
                 borderColor:     datosZonas.map(z => escalaColor(z.kwh_total, minKwh, maxKwh)),
                 borderWidth: 1.5,
@@ -645,9 +645,9 @@ function renderScatter() {
                         label: ctx => {
                             const z = ctx.raw.zona;
                             return [
-                                z.zona_nombre,
+                                z.nombre_zona,
                                 `kWh: ${fmtNum(z.kwh_total, 0)}`,
-                                `Anomalías: ${fmtNum(z.anomalias, 0)}`,
+                                `Anomalías: ${fmtNum(z.total_anomalias, 0)}`,
                                 `Ahorro: ${fmtNum(z.ahorro_kwh_estimado, 2)} kWh`,
                             ];
                         }
@@ -683,20 +683,20 @@ function renderTabla() {
     });
 
     const maxKwh  = Math.max(...datosZonas.map(z => z.kwh_total));
-    const maxAnom = Math.max(...datosZonas.map(z => z.anomalias));
+    const maxAnom = Math.max(...datosZonas.map(z => z.total_anomalias));
     const maxAho  = Math.max(...datosZonas.map(z => z.ahorro_kwh_estimado));
 
     tbody.innerHTML = sorted.map((z, i) => {
         const pctKwh  = (z.kwh_total / maxKwh * 100).toFixed(0);
-        const pctAnom = (z.anomalias / maxAnom * 100).toFixed(0);
+        const pctAnom = (z.total_anomalias / maxAnom * 100).toFixed(0);
         const pctAho  = (z.ahorro_kwh_estimado / maxAho * 100).toFixed(0);
         const colorK  = escalaColor(z.kwh_total, 0, maxKwh);
-        const colorA  = escalaColor(z.anomalias,  0, maxAnom);
+        const colorA  = escalaColor(z.total_anomalias,  0, maxAnom);
 
         return `
         <tr onclick="mostrarDetalleZona(datosZonas.find(x=>x.zona_id===${z.zona_id}))" style="cursor:pointer;">
             <td style="color:var(--texto-suave);font-weight:600;">${i+1}</td>
-            <td style="font-weight:600;">${z.zona_nombre}</td>
+            <td style="font-weight:600;">${z.nombre_zona}</td>
             <td>
                 <div class="pct-bar">
                     <span>${fmtNum(z.kwh_total, 0)}</span>
@@ -707,11 +707,11 @@ function renderTabla() {
             <td>${fmtNum(z.lux_promedio, 0)}</td>
             <td>
                 <div class="pct-bar">
-                    ${z.anomalias > 500
-                        ? `<span class="badge-critico">${fmtNum(z.anomalias,0)}</span>`
-                        : z.anomalias > 100
-                        ? `<span class="badge-alerta">${fmtNum(z.anomalias,0)}</span>`
-                        : `<span class="badge-normal">${fmtNum(z.anomalias,0)}</span>`
+                    ${z.total_anomalias > 500
+                        ? `<span class="badge-critico">${fmtNum(z.total_anomalias,0)}</span>`
+                        : z.total_anomalias > 100
+                        ? `<span class="badge-alerta">${fmtNum(z.total_anomalias,0)}</span>`
+                        : `<span class="badge-normal">${fmtNum(z.total_anomalias,0)}</span>`
                     }
                     <div class="pct-mini"><div class="pct-mini-fill" style="width:${pctAnom}%;background:${colorA};"></div></div>
                 </div>

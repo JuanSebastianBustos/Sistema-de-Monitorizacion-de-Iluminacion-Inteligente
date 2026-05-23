@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensores — Iluminación Bogotá</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/utils.js" defer></script>
+
+    <style>
+        /* ── Layout principal ── */
+        .sensores-layout {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        #mapa-sensores {
+            height: 480px;
+            border-radius: var(--radio-tarjeta);
+            z-index: 1;
+        }
+
+        /* ── Panel lateral del mapa ── */
+        .panel-lateral {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* ── Distribución de estados ── */
+        .estado-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+        }
+        .estado-item {
+            border-radius: var(--radio-tarjeta);
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: var(--sombra);
+        }
+        .estado-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .estado-info { flex: 1; min-width: 0; }
+        .estado-label { font-size: 0.7rem; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .estado-count { font-size: 1.4rem; font-weight: 800; line-height: 1; color: var(--azul-oscuro); }
+        .estado-pct   { font-size: 0.7rem; color: var(--texto-suave); }
+
+        /* ── Gráfico de modelo/tipo ── */
+        .chart-wrap-sm { position: relative; height: 200px; }
+        .chart-wrap    { position: relative; height: 260px; }
+
+        /* ── Leyenda mapa burbujas ── */
+        .leyenda-burbujas {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            font-size: 0.75rem;
+            margin-top: 0.85rem;
+            padding-top: 0.85rem;
+            border-top: 1px solid var(--gris-borde);
+        }
+        .leyenda-burbuja-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            color: var(--texto-suave);
+        }
+        .burbuja-muestra {
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ── Barra de progresión (precisión) ── */
+        .prec-bar {
+            height: 6px;
+            background: var(--gris-borde);
+            border-radius: 3px;
+            margin-top: 0.25rem;
+            overflow: hidden;
+        }
+        .prec-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        /* ── Tabla ── */
+        .tabla-scroll { max-height: 440px; overflow-y: auto; }
+        .tabla-compacta td, .tabla-compacta th { padding: 0.42rem 0.6rem; font-size: 0.78rem; }
+
+        /* ── Badge de criticidad ── */
+        .crit-normal   { background:#D4EDDA; color:#155724; padding:2px 8px; border-radius:10px; font-size:0.72rem; font-weight:700; }
+        .crit-alerta   { background:#FFF3CD; color:#856404; padding:2px 8px; border-radius:10px; font-size:0.72rem; font-weight:700; }
+        .crit-critico  { background:#F8D7DA; color:#721C24; padding:2px 8px; border-radius:10px; font-size:0.72rem; font-weight:700; }
+        .crit-inactivo { background:#E9ECEF; color:#495057; padding:2px 8px; border-radius:10px; font-size:0.72rem; font-weight:700; }
+
+        /* ── Filtro de criticidad ── */
+        .filtros-criticidad {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.85rem;
+            align-items: center;
+        }
+        .btn-crit {
+            background: var(--gris-fondo);
+            border: 1px solid var(--gris-borde);
+            border-radius: 20px;
+            padding: 0.25rem 0.85rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--texto-suave);
+            transition: var(--transicion);
+        }
+        .btn-crit.activo {
+            color: var(--blanco);
+        }
+        .btn-crit[data-crit="TODOS"]   { }
+        .btn-crit[data-crit="NORMAL"].activo   { background:#1A7A4A; border-color:#1A7A4A; }
+        .btn-crit[data-crit="ALERTA"].activo   { background:#F4A20D; border-color:#F4A20D; }
+        .btn-crit[data-crit="CRITICO"].activo  { background:#C0392B; border-color:#C0392B; }
+        .btn-crit[data-crit="INACTIVO"].activo { background:#9E9E9E; border-color:#9E9E9E; }
+        .btn-crit[data-crit="TODOS"].activo    { background:var(--azul-medio); border-color:var(--azul-medio); }
+
+        /* ── Indicador días sin mantenimiento ── */
+        .dias-critico  { color: var(--rojo); font-weight: 700; }
+        .dias-alerta   { color: var(--amarillo); font-weight: 600; }
+        .dias-normal   { color: var(--texto-suave); }
+
+        @media (max-width: 900px) {
+            .sensores-layout { grid-template-columns: 1fr; }
+            .estado-grid     { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <script>inyectarNavbar();</script>
+
+    <div class="contenido-principal">
+
+        <!-- ENCABEZADO -->
+        <div style="margin-bottom:1.25rem;">
+            <h1 class="pagina-titulo">📡 Estado de Sensores</h1>
+            <p class="pagina-subtitulo">¿Son los datos del sistema suficientemente confiables para tomar decisiones sobre el alumbrado?</p>
+        </div>
+
+        <!-- KPIs de confiabilidad -->
+        <div class="kpi-grid" id="kpi-grid">
+            <div class="kpi-card verde">
+                <div class="kpi-etiqueta">Sensores activos</div>
+                <div class="kpi-valor" id="kpi-activos">
+                    <div class="spinner" style="margin:0;width:20px;height:20px;border-width:2px;"></div>
+                </div>
+                <div class="kpi-unidad" id="kpi-activos-pct">de — sensores totales</div>
+            </div>
+            <div class="kpi-card azul">
+                <div class="kpi-etiqueta">Precisión promedio de la red</div>
+                <div class="kpi-valor" id="kpi-precision">—</div>
+                <div class="kpi-unidad">% de confiabilidad (100 − margen de error)</div>
+            </div>
+            <div class="kpi-card rojo">
+                <div class="kpi-etiqueta">Sensores en estado CRÍTICO</div>
+                <div class="kpi-valor" id="kpi-criticos">—</div>
+                <div class="kpi-unidad">con ≥ 15% de lecturas anómalas</div>
+            </div>
+            <div class="kpi-card amarillo">
+                <div class="kpi-etiqueta">Sin mantenimiento reciente</div>
+                <div class="kpi-valor" id="kpi-sin-mant">—</div>
+                <div class="kpi-unidad">sensores con &gt; 180 días sin revisión</div>
+            </div>
+        </div>
+
+        <!-- MAPA + PANEL -->
+        <div class="sensores-layout">
+
+            <!-- Mapa de burbujas -->
+            <div class="grafico-card" style="padding:1rem;">
+                <div class="grafico-titulo">
+                    🗺️ Mapa de Densidad de Sensores
+                    <span style="float:right;font-size:0.74rem;font-weight:400;color:var(--texto-suave);">
+                        Tamaño = % anomalías · Color = criticidad
+                    </span>
+                </div>
+                <div id="mapa-sensores"></div>
+                <div class="leyenda-burbujas">
+                    <div class="leyenda-burbuja-item">
+                        <div class="burbuja-muestra" style="width:10px;height:10px;background:#1A7A4A;"></div> NORMAL
+                    </div>
+                    <div class="leyenda-burbuja-item">
+                        <div class="burbuja-muestra" style="width:10px;height:10px;background:#F4A20D;"></div> ALERTA
+                    </div>
+                    <div class="leyenda-burbuja-item">
+                        <div class="burbuja-muestra" style="width:10px;height:10px;background:#C0392B;"></div> CRÍTICO
+                    </div>
+                    <div class="leyenda-burbuja-item">
+                        <div class="burbuja-muestra" style="width:10px;height:10px;background:#9E9E9E;"></div> INACTIVO
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel lateral -->
+            <div class="panel-lateral">
+
+                <!-- Distribución por estado de criticidad -->
+                <div class="grafico-card" style="padding:1.25rem;">
+                    <div class="grafico-titulo" style="margin-bottom:0.85rem;">🔴 Distribución por Criticidad</div>
+                    <div class="estado-grid" id="estado-grid">
+                        <div class="loading"><div class="spinner"></div></div>
+                    </div>
+                </div>
+
+                <!-- Distribución por tipo de sensor -->
+                <div class="grafico-card">
+                    <div class="grafico-titulo">🔬 Sensores por Tipo/Modelo</div>
+                    <div class="chart-wrap-sm">
+                        <canvas id="grafico-modelos"></canvas>
+                    </div>
+                </div>
+
+                <!-- Precisión por modelo (mini barras) -->
+                <div class="grafico-card" style="padding:1.25rem;">
+                    <div class="grafico-titulo" style="margin-bottom:0.75rem;">🎯 Precisión por Modelo</div>
+                    <div id="prec-list">
+                        <div class="loading"><div class="spinner"></div></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TABLA DE SENSORES CON ALERTAS -->
+        <div class="grafico-card">
+            <div class="grafico-titulo" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                <span>🚨 Tabla de Sensores con Alertas</span>
+                <div class="filtros-criticidad">
+                    <button class="btn-crit activo" data-crit="TODOS"   onclick="filtrarCrit(this)">Todos</button>
+                    <button class="btn-crit"         data-crit="CRITICO" onclick="filtrarCrit(this)">● CRÍTICO</button>
+                    <button class="btn-crit"         data-crit="ALERTA"  onclick="filtrarCrit(this)">● ALERTA</button>
+                    <button class="btn-crit"         data-crit="NORMAL"  onclick="filtrarCrit(this)">● NORMAL</button>
+                    <button class="btn-crit"         data-crit="INACTIVO" onclick="filtrarCrit(this)">● INACTIVO</button>
+                </div>
+                <span style="margin-left:auto;font-size:0.72rem;font-weight:400;color:var(--texto-suave);">
+                    Clic en encabezado para ordenar
+                </span>
+            </div>
+            <div class="tabla-scroll">
+                <div class="tabla-container">
+                    <table class="tabla-datos tabla-compacta" id="tabla-sensores">
+                        <thead>
+                            <tr>
+                                <th onclick="ordenarTabla('sensor_id')">ID ↕</th>
+                                <th onclick="ordenarTabla('nombre_zona')">Zona ↕</th>
+                                <th onclick="ordenarTabla('modelo')">Modelo ↕</th>
+                                <th onclick="ordenarTabla('estado_sensor')">Estado ↕</th>
+                                <th onclick="ordenarTabla('estado_criticidad')">Criticidad ↕</th>
+                                <th onclick="ordenarTabla('dias_sin_mantenimiento')">Sin Mant. (días) ↕</th>
+                                <th onclick="ordenarTabla('total_anomalias')">Anomalías ↕</th>
+                                <th onclick="ordenarTabla('pct_anomalias')">% Anomalías ↕</th>
+                                <th onclick="ordenarTabla('precision_pct')">Error % ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-body">
+                            <tr><td colspan="9">
+                                <div class="loading"><div class="spinner"></div> Cargando inventario de sensores...</div>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="font-size:0.75rem;color:var(--texto-suave);padding:0.5rem 0.25rem;" id="conteo-tabla">
+                — sensores mostrados
+            </div>
+        </div>
+
+    </div><!-- /contenido-principal -->
+
+    <footer style="background:var(--azul-oscuro);color:rgba(255,255,255,0.5);
+                   text-align:center;padding:1.25rem;font-size:0.78rem;margin-top:1rem;">
+        Sistema de Monitorización de Iluminación Inteligente — Bogotá D.C. · ODS 7 · ODS 11 · ODS 13
+    </footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  Colores de criticidad (consistentes en mapa y tabla)
+// ══════════════════════════════════════════════════════════════
+const COLOR_CRIT = {
+    'NORMAL':   '#1A7A4A',
+    'ALERTA':   '#F4A20D',
+    'CRITICO':  '#C0392B',
+    'INACTIVO': '#9E9E9E',
+};
+const BADGE_CRIT = {
+    'NORMAL':   'crit-normal',
+    'ALERTA':   'crit-alerta',
+    'CRITICO':  'crit-critico',
+    'INACTIVO': 'crit-inactivo',
+};
+
+// ── Estado global ──────────────────────────────────────────────
+let datosSensores  = [];
+let filtroActivo   = 'TODOS';
+let ordenTabla     = { col: 'dias_sin_mantenimiento', asc: false };
+let mapaLeaflet    = null;
+let chartModelos   = null;
+
+// ══════════════════════════════════════════════════════════════
+//  Init
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+    datosSensores = await cargarJSON('estado_sensores.json');
+    if (!datosSensores) {
+        mostrarError('kpi-grid', 'No se pudo cargar estado_sensores.json');
+        return;
+    }
+
+    renderKPIs();
+    iniciarMapa();
+    renderEstadoGrid();
+    renderModelos();
+    renderPrecision();
+    renderTabla();
+});
+
+// ══════════════════════════════════════════════════════════════
+//  KPIs
+// ══════════════════════════════════════════════════════════════
+function renderKPIs() {
+    const total    = datosSensores.length;
+    const activos  = datosSensores.filter(s => s.estado_sensor === 'Activo').length;
+    const criticos = datosSensores.filter(s => s.estado_criticidad === 'CRITICO').length;
+    const sinMant  = datosSensores.filter(s =>
+        s.dias_sin_mantenimiento !== null && s.dias_sin_mantenimiento > 180
+    ).length;
+
+    const precisionProm = 100 - (
+        datosSensores.reduce((s, sens) => s + sens.precision_pct, 0) / total
+    );
+
+    document.getElementById('kpi-activos').textContent     = activos;
+    document.getElementById('kpi-activos-pct').textContent = `${fmtPct(activos / total * 100)} de ${total} sensores totales`;
+    document.getElementById('kpi-precision').textContent   = fmtPct(precisionProm);
+    document.getElementById('kpi-criticos').textContent    = criticos;
+    document.getElementById('kpi-sin-mant').textContent    = sinMant;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Mapa de burbujas Leaflet
+// ══════════════════════════════════════════════════════════════
+function iniciarMapa() {
+    mapaLeaflet = L.map('mapa-sensores', { zoomControl: true }).setView([4.65, -74.09], 11);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO',
+        maxZoom: 18
+    }).addTo(mapaLeaflet);
+
+    const conCoords = datosSensores.filter(s => s.latitud !== null && s.longitud !== null);
+    const sinCoords = datosSensores.length - conCoords.length;
+
+    if (sinCoords > 0) {
+        console.info(`${sinCoords} sensores sin coordenadas — no se muestran en el mapa`);
+    }
+
+    conCoords.forEach(s => {
+        const color  = COLOR_CRIT[s.estado_criticidad] || '#9E9E9E';
+        // Radio proporcional al % de anomalías, con mínimo y máximo razonables
+        const radio  = Math.max(5, Math.min(20, 5 + s.pct_anomalias * 0.6));
+
+        L.circleMarker([s.latitud, s.longitud], {
+            radius:      radio,
+            fillColor:   color,
+            color:       '#FFFFFF',
+            weight:      1.5,
+            fillOpacity: 0.82,
+        })
+        .bindTooltip(`
+            <strong>Sensor ${s.sensor_id}</strong><br>
+            ${s.nombre_zona}<br>
+            Modelo: ${s.modelo}<br>
+            Anomalías: ${fmtPct(s.pct_anomalias)}<br>
+            Sin mantenimiento: ${s.dias_sin_mantenimiento ?? 'Sin registro'} días<br>
+            <span style="font-weight:700;color:${color}">${s.estado_criticidad}</span>
+        `, { direction: 'top' })
+        .on('click', () => resaltarSensor(s.sensor_id))
+        .addTo(mapaLeaflet);
+    });
+}
+
+function resaltarSensor(id) {
+    // Llevar la fila a la vista en la tabla
+    const row = document.querySelector(`tr[data-sensor-id="${id}"]`);
+    if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.style.background = '#EBF3FB';
+        setTimeout(() => { row.style.background = ''; }, 1500);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Distribución por criticidad (estado-grid)
+// ══════════════════════════════════════════════════════════════
+function renderEstadoGrid() {
+    const total  = datosSensores.length;
+    const estados = ['NORMAL', 'ALERTA', 'CRITICO', 'INACTIVO'];
+    const iconos  = { NORMAL:'✅', ALERTA:'⚠️', CRITICO:'🚨', INACTIVO:'⛔' };
+
+    const el = document.getElementById('estado-grid');
+    el.innerHTML = estados.map(est => {
+        const n   = datosSensores.filter(s => s.estado_criticidad === est).length;
+        const pct = (n / total * 100).toFixed(1);
+        return `
+        <div class="estado-item" style="background:${COLOR_CRIT[est]}11;
+             border:1px solid ${COLOR_CRIT[est]}44;">
+            <div class="estado-dot" style="background:${COLOR_CRIT[est]};"></div>
+            <div class="estado-info">
+                <div class="estado-label">${iconos[est]} ${est}</div>
+                <div class="estado-count">${n}</div>
+                <div class="estado-pct">${pct}% del total</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Distribución por modelo de sensor (doughnut)
+// ══════════════════════════════════════════════════════════════
+function renderModelos() {
+    const ctx = document.getElementById('grafico-modelos').getContext('2d');
+    if (chartModelos) chartModelos.destroy();
+
+    // Contar por modelo
+    const conteo = {};
+    datosSensores.forEach(s => {
+        conteo[s.modelo] = (conteo[s.modelo] || 0) + 1;
+    });
+    const modelos = Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a]);
+    const coloresDoughnut = ['#2E5C8A','#1A7A4A','#F4A20D','#C0392B','#8E44AD','#5B9BD5','#9E9E9E'];
+
+    chartModelos = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: modelos,
+            datasets: [{
+                data: modelos.map(m => conteo[m]),
+                backgroundColor: coloresDoughnut.slice(0, modelos.length),
+                borderColor: '#FFFFFF',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '60%',
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'right',
+                    labels: { boxWidth: 10, font: { size: 10 }, padding: 8 }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.label}: ${ctx.raw} (${(ctx.raw / datosSensores.length * 100).toFixed(1)}%)`
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Mini-barras de precisión por modelo
+// ══════════════════════════════════════════════════════════════
+function renderPrecision() {
+    const por_modelo = {};
+    datosSensores.forEach(s => {
+        if (!por_modelo[s.modelo]) por_modelo[s.modelo] = [];
+        por_modelo[s.modelo].push(s.precision_pct);
+    });
+
+    const lista = Object.entries(por_modelo)
+        .map(([m, vals]) => ({
+            modelo: m,
+            precision: 100 - (vals.reduce((a, v) => a + v, 0) / vals.length),
+        }))
+        .sort((a, b) => b.precision - a.precision);
+
+    const el = document.getElementById('prec-list');
+    el.innerHTML = lista.map(item => {
+        const color = item.precision > 99 ? '#1A7A4A'
+                    : item.precision > 95 ? '#F4A20D'
+                    : '#C0392B';
+        return `
+        <div style="margin-bottom:0.65rem;">
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:0.15rem;">
+                <span style="font-weight:600;color:var(--azul-oscuro);">${item.modelo}</span>
+                <span style="color:${color};font-weight:700;">${fmtPct(item.precision)}</span>
+            </div>
+            <div class="prec-bar">
+                <div class="prec-fill" style="width:${item.precision.toFixed(1)}%;background:${color};"></div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Tabla ordenable con filtro de criticidad
+// ══════════════════════════════════════════════════════════════
+function renderTabla() {
+    const tbody = document.getElementById('tabla-body');
+
+    let datos = filtroActivo === 'TODOS'
+        ? datosSensores
+        : datosSensores.filter(s => s.estado_criticidad === filtroActivo);
+
+    const sorted = [...datos].sort((a, b) => {
+        let va = a[ordenTabla.col];
+        let vb = b[ordenTabla.col];
+        // Nulos al fondo siempre
+        if (va === null || va === undefined) va = ordenTabla.asc ? Infinity : -Infinity;
+        if (vb === null || vb === undefined) vb = ordenTabla.asc ? Infinity : -Infinity;
+        if (typeof va === 'string') return ordenTabla.asc
+            ? va.localeCompare(vb) : vb.localeCompare(va);
+        return ordenTabla.asc ? va - vb : vb - va;
+    });
+
+    document.getElementById('conteo-tabla').textContent =
+        `${sorted.length} sensores mostrados${filtroActivo !== 'TODOS' ? ` · Filtro: ${filtroActivo}` : ''}`;
+
+    tbody.innerHTML = sorted.map(s => {
+        const dias   = s.dias_sin_mantenimiento;
+        const diasCls= dias === null ? 'dias-normal'
+                     : dias > 365   ? 'dias-critico'
+                     : dias > 180   ? 'dias-alerta'
+                     : 'dias-normal';
+        const diasTxt = dias !== null ? `${fmtNum(dias, 0)} d` : 'Sin registro';
+        const critCls = BADGE_CRIT[s.estado_criticidad] || 'crit-inactivo';
+        const pctCol  = s.pct_anomalias >= 15 ? 'var(--rojo)'
+                      : s.pct_anomalias >= 5  ? 'var(--amarillo)'
+                      : 'var(--verde)';
+
+        return `
+        <tr data-sensor-id="${s.sensor_id}" style="cursor:pointer;">
+            <td style="font-family:monospace;color:var(--texto-suave);">${s.sensor_id}</td>
+            <td style="font-weight:600;">${s.nombre_zona}</td>
+            <td>${s.modelo}</td>
+            <td style="font-size:0.75rem;color:var(--texto-suave);">${s.estado_sensor}</td>
+            <td><span class="${critCls}">${s.estado_criticidad}</span></td>
+            <td class="${diasCls}">${diasTxt}</td>
+            <td>${s.total_anomalias > 500
+                ? `<span class="badge-critico">${fmtNum(s.total_anomalias, 0)}</span>`
+                : s.total_anomalias > 100
+                ? `<span class="badge-alerta">${fmtNum(s.total_anomalias, 0)}</span>`
+                : `<span class="badge-normal">${fmtNum(s.total_anomalias, 0)}</span>`
+            }</td>
+            <td style="font-weight:700;color:${pctCol};">${fmtPct(s.pct_anomalias)}</td>
+            <td style="color:var(--texto-suave);">±${fmtNum(s.precision_pct, 2)}%</td>
+        </tr>`;
+    }).join('');
+}
+
+function ordenarTabla(col) {
+    ordenTabla.asc = ordenTabla.col === col ? !ordenTabla.asc : false;
+    ordenTabla.col = col;
+    renderTabla();
+}
+
+function filtrarCrit(btn) {
+    document.querySelectorAll('.btn-crit').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    filtroActivo = btn.dataset.crit;
+    renderTabla();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clima — Iluminación Bogotá</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/utils.js" defer></script>
+
+    <style>
+        /* ── Grids de layout ── */
+        .clima-grid-principal {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .clima-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* ── Alturas de canvas ── */
+        .chart-wrap-lg { position: relative; height: 380px; }
+        .chart-wrap    { position: relative; height: 300px; }
+        .chart-wrap-sm { position: relative; height: 230px; }
+
+        /* ── Tarjetas de temperatura (comparativo frío/templado) ── */
+        .temp-comparativo {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            border-radius: var(--radio-tarjeta);
+            overflow: hidden;
+            box-shadow: var(--sombra);
+        }
+        .temp-card {
+            padding: 1.5rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .temp-card.fria    { background: #EBF5FB; border-right: 1px solid var(--gris-borde); }
+        .temp-card.templada { background: #FEF9EC; }
+        .temp-icono        { font-size: 2rem; margin-bottom: 0.4rem; }
+        .temp-label        { font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+                             letter-spacing: 0.5px; color: var(--texto-suave); margin-bottom: 0.2rem; }
+        .temp-rango        { font-size: 0.78rem; color: var(--texto-suave); margin-bottom: 0.75rem; }
+        .temp-kwh          { font-size: 2rem; font-weight: 800; line-height: 1;
+                             color: var(--azul-oscuro); }
+        .temp-kwh-unit     { font-size: 0.78rem; color: var(--texto-suave); margin-top: 0.2rem; }
+        .temp-sub          { font-size: 0.75rem; color: var(--texto-suave);
+                             margin-top: 0.6rem; padding-top: 0.6rem;
+                             border-top: 1px solid rgba(0,0,0,0.08); }
+
+        /* ── Leyenda scatter ── */
+        .leyenda-scatter {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--gris-borde);
+        }
+        .leyenda-item-scatter {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            color: var(--texto-suave);
+        }
+        .leyenda-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ── Panel de insight ── */
+        .insight-box {
+            background: linear-gradient(135deg, #EBF3FB 0%, #F0F7FF 100%);
+            border-left: 3px solid var(--azul-medio);
+            border-radius: 0 var(--radio-tarjeta) var(--radio-tarjeta) 0;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.84rem;
+            color: var(--azul-oscuro);
+            line-height: 1.6;
+        }
+        .insight-box strong { color: var(--azul-medio); }
+
+        /* ── Tabla ── */
+        .tabla-scroll { max-height: 400px; overflow-y: auto; }
+        .tabla-compacta td, .tabla-compacta th {
+            padding: 0.45rem 0.65rem;
+            font-size: 0.8rem;
+        }
+
+        /* ── Badge condicion clima ── */
+        .badge-soleado  { background:#FEF9EC; color:#856404; padding:2px 10px; border-radius:12px; font-size:0.74rem; font-weight:700; }
+        .badge-nublado  { background:#F0F0F0; color:#555;    padding:2px 10px; border-radius:12px; font-size:0.74rem; font-weight:700; }
+        .badge-lluvioso { background:#EBF5FB; color:#1B4F72; padding:2px 10px; border-radius:12px; font-size:0.74rem; font-weight:700; }
+        .badge-nocturno { background:#1B2A4A; color:#fff;    padding:2px 10px; border-radius:12px; font-size:0.74rem; font-weight:700; }
+
+        /* ── Correlación badge ── */
+        .corr-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+        .corr-negativa { background: #D4EDDA; color: #155724; }
+        .corr-positiva { background: #F8D7DA; color: #721C24; }
+        .corr-debil    { background: #FFF3CD; color: #856404; }
+
+        @media (max-width: 900px) {
+            .clima-grid-principal,
+            .clima-grid-2 { grid-template-columns: 1fr; }
+            .temp-comparativo { grid-template-columns: 1fr; }
+            .temp-card.fria { border-right: none; border-bottom: 1px solid var(--gris-borde); }
+        }
+    </style>
+</head>
+<body>
+    <script>inyectarNavbar();</script>
+
+    <div class="contenido-principal">
+
+        <!-- ENCABEZADO -->
+        <div style="margin-bottom:1.25rem;">
+            <h1 class="pagina-titulo">🌦️ Contexto Climático</h1>
+            <p class="pagina-subtitulo">¿Cómo afecta el clima al comportamiento del sistema de alumbrado?</p>
+        </div>
+
+        <!-- INSIGHT BOX -->
+        <div class="insight-box" id="insight-correlacion">
+            <span style="font-size:1.1rem;">🔍</span>
+            <strong>Hipótesis central:</strong> a mayor radiación solar (más luz natural),
+            menor nivel de lux registrado. Si el sistema funciona correctamente,
+            las luminarias se apagan o dimean en condiciones de alta radiación solar.
+            <span id="insight-resultado" style="margin-left:0.5rem;"></span>
+        </div>
+
+        <!-- KPIs de cabecera -->
+        <div class="kpi-grid" id="kpi-grid">
+            <div class="kpi-card azul">
+                <div class="kpi-etiqueta">Condiciones climáticas</div>
+                <div class="kpi-valor" id="kpi-cond">
+                    <div class="spinner" style="margin:0;width:20px;height:20px;border-width:2px;"></div>
+                </div>
+                <div class="kpi-unidad">perfiles únicos registrados</div>
+            </div>
+            <div class="kpi-card amarillo">
+                <div class="kpi-etiqueta">Radiación solar máx. promedio</div>
+                <div class="kpi-valor" id="kpi-rad">—</div>
+                <div class="kpi-unidad">W/m² (condición más soleada)</div>
+            </div>
+            <div class="kpi-card verde">
+                <div class="kpi-etiqueta">Lux prom. en condición nocturna</div>
+                <div class="kpi-valor" id="kpi-lux-noc">—</div>
+                <div class="kpi-unidad">lux — el sistema opera de noche</div>
+            </div>
+            <div class="kpi-card rojo">
+                <div class="kpi-etiqueta">Mayor tasa de anomalías</div>
+                <div class="kpi-valor" id="kpi-anom-clima">—</div>
+                <div class="kpi-unidad" id="kpi-anom-clima-cond">—</div>
+            </div>
+        </div>
+
+        <!-- SCATTER + TEMP CARDS -->
+        <div class="clima-grid-principal">
+
+            <!-- Scatter principal -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">
+                    ☀️ Correlación: Radiación Solar vs Lux Promedio
+                    <span style="float:right;font-size:0.74rem;font-weight:400;color:var(--texto-suave);">
+                        Tamaño = kWh promedio
+                    </span>
+                </div>
+                <div class="chart-wrap-lg">
+                    <canvas id="grafico-scatter"></canvas>
+                </div>
+                <div class="leyenda-scatter" id="leyenda-scatter"></div>
+            </div>
+
+            <!-- Comparativo temperatura -->
+            <div style="display:flex;flex-direction:column;gap:1rem;">
+
+                <!-- Cards temp frío / templado -->
+                <div class="grafico-card" style="padding:1.25rem;">
+                    <div class="grafico-titulo" style="margin-bottom:1rem;">🌡️ Consumo por Temperatura</div>
+                    <div class="temp-comparativo">
+                        <div class="temp-card fria">
+                            <div>
+                                <div class="temp-icono">🧊</div>
+                                <div class="temp-label">Días Fríos</div>
+                                <div class="temp-rango">&lt; 10 °C</div>
+                            </div>
+                            <div>
+                                <div class="temp-kwh" id="temp-fria-kwh">—</div>
+                                <div class="temp-kwh-unit">kWh promedio</div>
+                                <div class="temp-sub" id="temp-fria-sub">— registros</div>
+                            </div>
+                        </div>
+                        <div class="temp-card templada">
+                            <div>
+                                <div class="temp-icono">☀️</div>
+                                <div class="temp-label">Días Templados</div>
+                                <div class="temp-rango">&gt; 14 °C</div>
+                            </div>
+                            <div>
+                                <div class="temp-kwh" id="temp-templada-kwh">—</div>
+                                <div class="temp-kwh-unit">kWh promedio</div>
+                                <div class="temp-sub" id="temp-templada-sub">— registros</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- % luminarias encendidas por condición (mini) -->
+                <div class="grafico-card">
+                    <div class="grafico-titulo">💡 % Encendidas por Condición</div>
+                    <div class="chart-wrap-sm">
+                        <canvas id="grafico-encendidas"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- BARRAS HORIZONTALES DUALES + TABLA -->
+        <div class="clima-grid-2">
+
+            <!-- Barras kWh total por condición -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">⚡ kWh Total y Lux Promedio por Condición</div>
+                <div class="chart-wrap">
+                    <canvas id="grafico-barras"></canvas>
+                </div>
+            </div>
+
+            <!-- Barras anomalías por condición -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">⚠️ Anomalías por Condición Climática</div>
+                <div class="chart-wrap">
+                    <canvas id="grafico-anomalias"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TABLA DE RESUMEN -->
+        <div class="grafico-card">
+            <div class="grafico-titulo" style="display:flex;align-items:center;justify-content:space-between;">
+                <span>📋 Tabla de Resumen por Condición Climática</span>
+                <span style="font-size:0.72rem;font-weight:400;color:var(--texto-suave);">Clic en encabezado para ordenar</span>
+            </div>
+            <div class="tabla-scroll">
+                <div class="tabla-container">
+                    <table class="tabla-datos tabla-compacta" id="tabla-clima">
+                        <thead>
+                            <tr>
+                                <th onclick="ordenarTabla('condicion_clima')">Condición ↕</th>
+                                <th onclick="ordenarTabla('total_anomalias')">Anomalías ↕</th>
+                                <th onclick="ordenarTabla('kwh_total')">kWh Total ↕</th>
+                                <th onclick="ordenarTabla('lux_promedio')">Lux Prom. ↕</th>
+                                <th onclick="ordenarTabla('eficiencia_lux_kwh')">Eficiencia (lux/kWh) ↕</th>
+                                <th onclick="ordenarTabla('temperatura_promedio')">Temp. Prom. ↕</th>
+                                <th onclick="ordenarTabla('pct_encendidas')">% Encendidas ↕</th>
+                                <th onclick="ordenarTabla('total_registros')">Registros ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-body">
+                            <tr><td colspan="8">
+                                <div class="loading"><div class="spinner"></div> Cargando datos climáticos...</div>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /contenido-principal -->
+
+    <footer style="background:var(--azul-oscuro);color:rgba(255,255,255,0.5);
+                   text-align:center;padding:1.25rem;font-size:0.78rem;margin-top:1rem;">
+        Sistema de Monitorización de Iluminación Inteligente — Bogotá D.C. · ODS 7 · ODS 11 · ODS 13
+    </footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  Paleta por condición climática (consistente con el sistema)
+// ══════════════════════════════════════════════════════════════
+const COLOR_CLIMA = {
+    'Soleado':           '#F4A20D',
+    'Nublado':           '#7F8C8D',
+    'Lluvioso':          '#2E5C8A',
+    'Despejado Nocturno':'#1B2A4A',
+};
+const BADGE_CLIMA = {
+    'Soleado':           'badge-soleado',
+    'Nublado':           'badge-nublado',
+    'Lluvioso':          'badge-lluvioso',
+    'Despejado Nocturno':'badge-nocturno',
+};
+
+function colorClima(cond) {
+    return COLOR_CLIMA[cond] || '#9E9E9E';
+}
+function badgeClima(cond) {
+    const cls = BADGE_CLIMA[cond] || 'badge-normal';
+    return `<span class="${cls}">${cond}</span>`;
+}
+
+// ── Estado global ──────────────────────────────────────────────
+let datosClima   = [];
+let datosAgrupados = [];      // agrupado por condicion_clima
+let ordenTabla   = { col: 'kwh_total', asc: false };
+let chartScatter = null;
+let chartBarras  = null;
+let chartAnom    = null;
+let chartEnc     = null;
+
+// ══════════════════════════════════════════════════════════════
+//  Init
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+    datosClima = await cargarJSON('consumo_por_clima.json');
+    if (!datosClima) {
+        mostrarError('kpi-grid', 'No se pudo cargar consumo_por_clima.json');
+        return;
+    }
+
+    // Calcular eficiencia en cada objeto (derivada: no viene en el JSON)
+    datosClima = datosClima.map(d => ({
+        ...d,
+        eficiencia_lux_kwh: d.kwh_promedio > 0
+            ? parseFloat((d.lux_promedio / d.kwh_promedio).toFixed(2))
+            : 0,
+    }));
+
+    // Agrupar por condicion_clima para los gráficos de barras
+    const agrupado = {};
+    datosClima.forEach(d => {
+        const k = d.condicion_clima;
+        if (!agrupado[k]) {
+            agrupado[k] = {
+                condicion_clima:   k,
+                kwh_total:         0,
+                lux_sum:           0,
+                total_anomalias:   0,
+                total_registros:   0,
+                pct_encendidas_sum:0,
+                n:                 0,
+            };
+        }
+        agrupado[k].kwh_total          += d.kwh_total;
+        agrupado[k].lux_sum            += d.lux_promedio * d.total_registros;
+        agrupado[k].total_anomalias    += d.total_anomalias;
+        agrupado[k].total_registros    += d.total_registros;
+        agrupado[k].pct_encendidas_sum += d.pct_encendidas * d.total_registros;
+        agrupado[k].n                  += 1;
+    });
+    datosAgrupados = Object.values(agrupado).map(g => ({
+        ...g,
+        lux_promedio:    g.total_registros > 0 ? g.lux_sum / g.total_registros : 0,
+        pct_encendidas:  g.total_registros > 0 ? g.pct_encendidas_sum / g.total_registros : 0,
+    }));
+
+    renderKPIs();
+    renderTempCards();
+    renderScatter();
+    renderBarras();
+    renderAnomalias();
+    renderEncendidas();
+    renderTabla();
+});
+
+// ══════════════════════════════════════════════════════════════
+//  KPIs
+// ══════════════════════════════════════════════════════════════
+function renderKPIs() {
+    // Condiciones únicas
+    const condiciones = [...new Set(datosClima.map(d => d.condicion_clima))];
+    document.getElementById('kpi-cond').textContent = condiciones.length;
+
+    // Radiación máxima
+    const maxRad = Math.max(...datosClima.map(d => d.radiacion_solar_promedio));
+    document.getElementById('kpi-rad').textContent = fmtNum(maxRad, 0);
+
+    // Lux nocturno
+    const nocturnos = datosClima.filter(d =>
+        d.condicion_clima === 'Despejado Nocturno' || d.radiacion_solar_promedio < 5
+    );
+    const luxNoc = nocturnos.length > 0
+        ? nocturnos.reduce((s, d) => s + d.lux_promedio, 0) / nocturnos.length : 0;
+    document.getElementById('kpi-lux-noc').textContent = fmtLux(luxNoc);
+
+    // Mayor tasa de anomalías por condición
+    const peorCond = datosAgrupados
+        .map(g => ({ ...g, tasa: g.total_registros > 0 ? g.total_anomalias / g.total_registros : 0 }))
+        .sort((a, b) => b.tasa - a.tasa)[0];
+    document.getElementById('kpi-anom-clima').textContent =
+        fmtPct(peorCond.tasa * 100);
+    document.getElementById('kpi-anom-clima-cond').textContent =
+        `en condición: ${peorCond.condicion_clima}`;
+
+    // Correlación y badge de insight
+    const corr = calcularCorrelacion(
+        datosClima.map(d => d.radiacion_solar_promedio),
+        datosClima.map(d => d.lux_promedio)
+    );
+    const insightEl = document.getElementById('insight-resultado');
+    if (corr < -0.3) {
+        insightEl.innerHTML = `<span class="corr-badge corr-negativa">✓ Correlación negativa (r = ${corr.toFixed(2)}) — el sistema responde correctamente al clima</span>`;
+    } else if (corr > 0.3) {
+        insightEl.innerHTML = `<span class="corr-badge corr-positiva">⚠ Correlación positiva (r = ${corr.toFixed(2)}) — revisar comportamiento del sistema</span>`;
+    } else {
+        insightEl.innerHTML = `<span class="corr-badge corr-debil">~ Correlación débil (r = ${corr.toFixed(2)}) — relación no concluyente</span>`;
+    }
+}
+
+function calcularCorrelacion(x, y) {
+    const n = x.length;
+    const mx = x.reduce((s, v) => s + v, 0) / n;
+    const my = y.reduce((s, v) => s + v, 0) / n;
+    let num = 0, dx2 = 0, dy2 = 0;
+    for (let i = 0; i < n; i++) {
+        num  += (x[i] - mx) * (y[i] - my);
+        dx2  += (x[i] - mx) ** 2;
+        dy2  += (y[i] - my) ** 2;
+    }
+    return (dx2 * dy2) === 0 ? 0 : num / Math.sqrt(dx2 * dy2);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Tarjetas de temperatura
+// ══════════════════════════════════════════════════════════════
+function renderTempCards() {
+    const frias    = datosClima.filter(d => d.temperatura_promedio < 10);
+    const templadas = datosClima.filter(d => d.temperatura_promedio > 14);
+
+    function promediar(arr, campo) {
+        return arr.length > 0 ? arr.reduce((s, d) => s + d[campo], 0) / arr.length : 0;
+    }
+    function totalReg(arr) {
+        return arr.reduce((s, d) => s + d.total_registros, 0);
+    }
+
+    const kwhFria     = promediar(frias, 'kwh_promedio');
+    const kwhTemplada = promediar(templadas, 'kwh_promedio');
+
+    document.getElementById('temp-fria-kwh').textContent =
+        frias.length > 0 ? fmtNum(kwhFria, 4) : 'Sin datos';
+    document.getElementById('temp-fria-sub').textContent =
+        `${fmtNum(totalReg(frias), 0)} registros`;
+
+    document.getElementById('temp-templada-kwh').textContent =
+        templadas.length > 0 ? fmtNum(kwhTemplada, 4) : 'Sin datos';
+    document.getElementById('temp-templada-sub').textContent =
+        `${fmtNum(totalReg(templadas), 0)} registros`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Scatter — Radiación vs Lux (punto por perfil climático)
+// ══════════════════════════════════════════════════════════════
+function renderScatter() {
+    const ctx = document.getElementById('grafico-scatter').getContext('2d');
+    if (chartScatter) chartScatter.destroy();
+
+    // Agrupar datasets por condicion_clima para leyenda con color
+    const condiciones = [...new Set(datosClima.map(d => d.condicion_clima))];
+    const maxKwh = Math.max(...datosClima.map(d => d.kwh_promedio));
+
+    const datasets = condiciones.map(cond => {
+        const puntos = datosClima.filter(d => d.condicion_clima === cond);
+        return {
+            label: cond,
+            data: puntos.map(d => ({
+                x: d.radiacion_solar_promedio,
+                y: d.lux_promedio,
+                r: Math.max(6, Math.sqrt(d.kwh_promedio / maxKwh) * 28),
+                kwh: d.kwh_promedio,
+                nubosidad: d.rango_cobertura_nubosa,
+                registros: d.total_registros,
+            })),
+            backgroundColor: colorClima(cond) + 'AA',
+            borderColor:     colorClima(cond),
+            borderWidth: 1.5,
+            pointHoverRadius: 8,
+        };
+    });
+
+    chartScatter = new Chart(ctx, {
+        type: 'bubble',
+        data: { datasets },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            plugins: {
+                ...OPCIONES_BASE_CHART.plugins,
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => [
+                            `${ctx.dataset.label}`,
+                            `Radiación: ${fmtNum(ctx.raw.x, 0)} W/m²`,
+                            `Lux prom.: ${fmtLux(ctx.raw.y)}`,
+                            `kWh prom.: ${fmtNum(ctx.raw.kwh, 5)}`,
+                            `Nubosidad: ${ctx.raw.nubosidad}`,
+                            `Registros: ${fmtNum(ctx.raw.registros, 0)}`,
+                        ]
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ...OPCIONES_BASE_CHART.scales.x,
+                    title: {
+                        display: true, text: 'Radiación Solar Promedio (W/m²)',
+                        color: '#6C757D', font: { size: 10 }
+                    },
+                    ticks: { callback: v => fmtNum(v, 0) }
+                },
+                y: {
+                    ...OPCIONES_BASE_CHART.scales.y,
+                    title: {
+                        display: true, text: 'Lux Promedio',
+                        color: '#6C757D', font: { size: 10 }
+                    },
+                    ticks: { callback: v => fmtNum(v, 0) }
+                }
+            }
+        }
+    });
+
+    // Leyenda manual
+    const leyendaEl = document.getElementById('leyenda-scatter');
+    leyendaEl.innerHTML = condiciones.map(cond => `
+        <div class="leyenda-item-scatter">
+            <div class="leyenda-dot" style="background:${colorClima(cond)};"></div>
+            ${cond}
+        </div>
+    `).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Barras horizontales — kWh total y Lux por condición (dual axis)
+// ══════════════════════════════════════════════════════════════
+function renderBarras() {
+    const ctx = document.getElementById('grafico-barras').getContext('2d');
+    if (chartBarras) chartBarras.destroy();
+
+    const sorted = [...datosAgrupados].sort((a, b) => b.kwh_total - a.kwh_total);
+    const labels = sorted.map(g => g.condicion_clima);
+
+    chartBarras = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'kWh Total',
+                    data: sorted.map(g => g.kwh_total),
+                    backgroundColor: sorted.map(g => colorClima(g.condicion_clima) + 'CC'),
+                    borderColor:     sorted.map(g => colorClima(g.condicion_clima)),
+                    borderWidth: 1,
+                    borderRadius: 3,
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'Lux Promedio',
+                    data: sorted.map(g => g.lux_promedio),
+                    type: 'line',
+                    borderColor: '#2E5C8A',
+                    backgroundColor: '#2E5C8A22',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'y2',
+                }
+            ]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            indexAxis: 'y',
+            plugins: {
+                ...OPCIONES_BASE_CHART.plugins,
+                legend: { display: true, position: 'top',
+                    labels: { boxWidth: 10, font: { size: 10 } } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ctx.dataset.label === 'kWh Total'
+                            ? `kWh: ${fmtNum(ctx.raw, 2)}`
+                            : `Lux: ${fmtLux(ctx.raw)}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ...OPCIONES_BASE_CHART.scales.x,
+                    position: 'bottom',
+                    ticks: { callback: v => fmtNum(v, 0) }
+                },
+                y:  { ...OPCIONES_BASE_CHART.scales.y },
+                y2: {
+                    position: 'right',
+                    grid: { drawOnChartArea: false },
+                    ticks: {
+                        color: '#2E5C8A',
+                        callback: v => fmtNum(v, 0) + ' lx'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Barras de anomalías por condición
+// ══════════════════════════════════════════════════════════════
+function renderAnomalias() {
+    const ctx = document.getElementById('grafico-anomalias').getContext('2d');
+    if (chartAnom) chartAnom.destroy();
+
+    const sorted = [...datosAgrupados]
+        .sort((a, b) => b.total_anomalias - a.total_anomalias);
+
+    chartAnom = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sorted.map(g => g.condicion_clima),
+            datasets: [{
+                label: 'Anomalías',
+                data: sorted.map(g => g.total_anomalias),
+                backgroundColor: sorted.map(g => colorClima(g.condicion_clima) + 'BB'),
+                borderColor:     sorted.map(g => colorClima(g.condicion_clima)),
+                borderWidth: 1,
+                borderRadius: 3,
+            }]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${fmtNum(ctx.raw, 0)} anomalías`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ...OPCIONES_BASE_CHART.scales.x,
+                    ticks: { callback: v => fmtNum(v, 0) }
+                },
+                y: { ...OPCIONES_BASE_CHART.scales.y }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  % Luminarias encendidas por condición
+// ══════════════════════════════════════════════════════════════
+function renderEncendidas() {
+    const ctx = document.getElementById('grafico-encendidas').getContext('2d');
+    if (chartEnc) chartEnc.destroy();
+
+    const sorted = [...datosAgrupados].sort((a, b) => b.pct_encendidas - a.pct_encendidas);
+
+    chartEnc = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sorted.map(g => g.condicion_clima),
+            datasets: [{
+                label: '% Encendidas',
+                data: sorted.map(g => g.pct_encendidas),
+                backgroundColor: sorted.map(g => colorClima(g.condicion_clima) + 'AA'),
+                borderColor:     sorted.map(g => colorClima(g.condicion_clima)),
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            ...OPCIONES_BASE_CHART,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${fmtPct(ctx.raw)} encendidas`
+                    }
+                }
+            },
+            scales: {
+                x: { ...OPCIONES_BASE_CHART.scales.x },
+                y: {
+                    ...OPCIONES_BASE_CHART.scales.y,
+                    min: 0, max: 100,
+                    ticks: { callback: v => v + '%' }
+                }
+            }
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Tabla ordenable
+// ══════════════════════════════════════════════════════════════
+function renderTabla() {
+    const tbody = document.getElementById('tabla-body');
+    const sorted = [...datosClima].sort((a, b) => {
+        const va = a[ordenTabla.col];
+        const vb = b[ordenTabla.col];
+        if (typeof va === 'string') return ordenTabla.asc
+            ? va.localeCompare(vb) : vb.localeCompare(va);
+        return ordenTabla.asc ? va - vb : vb - va;
+    });
+
+    tbody.innerHTML = sorted.map(d => {
+        const efic = d.eficiencia_lux_kwh;
+        const eficColor = efic > 3000 ? 'var(--verde)' : efic > 1000 ? 'var(--amarillo)' : 'var(--rojo)';
+        return `<tr>
+            <td>${badgeClima(d.condicion_clima)}</td>
+            <td>${d.total_anomalias > 500
+                ? `<span class="badge-critico">${fmtNum(d.total_anomalias, 0)}</span>`
+                : d.total_anomalias > 100
+                ? `<span class="badge-alerta">${fmtNum(d.total_anomalias, 0)}</span>`
+                : `<span class="badge-normal">${fmtNum(d.total_anomalias, 0)}</span>`
+            }</td>
+            <td>${fmtNum(d.kwh_total, 2)}</td>
+            <td>${fmtLux(d.lux_promedio)}</td>
+            <td style="font-weight:600;color:${eficColor};">${fmtNum(efic, 0)}</td>
+            <td>${fmtNum(d.temperatura_promedio, 1)} °C</td>
+            <td>${fmtPct(d.pct_encendidas)}</td>
+            <td style="color:var(--texto-suave);">${fmtNum(d.total_registros, 0)}</td>
+        </tr>`;
+    }).join('');
+}
+
+function ordenarTabla(col) {
+    ordenTabla.asc = ordenTabla.col === col ? !ordenTabla.asc : false;
+    ordenTabla.col = col;
+    renderTabla();
+}
+</script>
+</body>
+</html>

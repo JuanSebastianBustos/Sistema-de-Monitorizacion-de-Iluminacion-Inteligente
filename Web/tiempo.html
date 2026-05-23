@@ -226,8 +226,26 @@
 //  Init
 // ══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
-    const horario = await cargarJSON('consumo_horario.json');
-    if (!horario) { mostrarError('heatmap-body', 'No se pudo cargar consumo_horario.json'); return; }
+    const horarioRaw = await cargarJSON('consumo_por_hora.json');
+    if (!horarioRaw) { mostrarError('heatmap-body', 'No se pudo cargar consumo_por_hora.json'); return; }
+
+    // El JSON tiene 168 entradas (24 horas × 7 días).
+    // Agregamos por hora para obtener 24 promedios que alimentan
+    // el heatmap de fila única y los gráficos de línea.
+    const horario = Array.from({ length: 24 }, (_, h) => {
+        const entries = horarioRaw.filter(e => e.hora === h);
+        const avg = (campo) => entries.reduce((s, e) => s + (e[campo] ?? 0), 0) / entries.length;
+        return {
+            hora:              h,
+            lux_promedio:      avg('lux_promedio'),
+            lux_optimo_promedio: avg('lux_optimo_promedio'),
+            pct_encendidas:    avg('pct_encendidas'),
+            kwh_promedio:      avg('kwh_promedio'),
+            kwh_total:         entries.reduce((s, e) => s + (e.kwh_total ?? 0), 0),
+            total_anomalias:   Math.round(entries.reduce((s, e) => s + (e.total_anomalias ?? 0), 0) / entries.length),
+            es_horario_nocturno: entries[0]?.es_horario_nocturno ?? false,
+        };
+    });
 
     renderStats(horario);
     renderHeatmap(horario);
@@ -246,7 +264,7 @@ function renderStats(horario) {
 
     const promNocPct = nocturno.reduce((s,h) => s + h.pct_encendidas, 0) / nocturno.length;
     const promDiaLux = diurno.reduce((s,h) => s + h.lux_promedio, 0) / diurno.length;
-    const promAhorro = horario.reduce((s,h) => s + h.ahorro_kwh_promedio, 0) / horario.length;
+    const promAhorro = horario.reduce((s,h) => s + h.kwh_promedio, 0) / horario.length;
 
     document.getElementById('stat-horas-noc').textContent     = nocturno.length;
     document.getElementById('stat-noc-pct').textContent       = `${promNocPct.toFixed(0)}% promedio encendidas`;
@@ -309,18 +327,18 @@ function renderHeatmap(horario) {
     filePct += '</tr>';
 
     // Fila ahorro
-    const maxAho = Math.max(...horario.map(h => h.ahorro_kwh_promedio));
-    const minAho = Math.min(...horario.map(h => h.ahorro_kwh_promedio));
+    const maxAho = Math.max(...horario.map(h => h.kwh_promedio));
+    const minAho = Math.min(...horario.map(h => h.kwh_promedio));
     let fileAho = '<tr><td class="hora-label" style="font-size:0.65rem;">Ahorro</td>';
     horario.forEach(h => {
         // Para ahorro: más ahorro = más verde (invertir escala de color)
-        const pct = (h.ahorro_kwh_promedio - minAho) / (maxAho - minAho);
+        const pct = (h.kwh_promedio - minAho) / (maxAho - minAho);
         const r = Math.round(192 - (192 - 26) * pct);
         const g = Math.round(57  + (122 - 57) * pct);
         const b = Math.round(43  - (43  - 74) * pct);
         const bg = `rgb(${r},${g},${b})`;
-        const val = (h.ahorro_kwh_promedio * 1000).toFixed(1) + 'W';
-        fileAho += `<td style="background:${bg};" title="Hora ${h.hora}: ${(h.ahorro_kwh_promedio * 1000).toFixed(2)} Wh ahorro">${val}</td>`;
+        const val = (h.kwh_promedio * 1000).toFixed(1) + 'W';
+        fileAho += `<td style="background:${bg};" title="Hora ${h.hora}: ${(h.kwh_promedio * 1000).toFixed(2)} Wh ahorro">${val}</td>`;
     });
     fileAho += '</tr>';
 
@@ -419,7 +437,7 @@ function renderGraficoAhorro(horario) {
             labels: horario.map(h => `${h.hora}h`),
             datasets: [{
                 label: 'Ahorro (Wh)',
-                data: horario.map(h => (h.ahorro_kwh_promedio * 1000).toFixed(4)),
+                data: horario.map(h => (h.kwh_promedio * 1000).toFixed(4)),
                 backgroundColor: horario.map(h =>
                     h.hora < 6 || h.hora >= 18 ? PALETA[1] + 'CC' : PALETA[2] + '88'
                 ),
@@ -469,7 +487,7 @@ function renderComparativo(horario) {
                     data: [
                         avg(nocturno, 'lux_promedio'),
                         avg(nocturno, 'pct_encendidas'),
-                        avg(nocturno, 'ahorro_kwh_promedio') * 10000
+                        avg(nocturno, 'kwh_promedio') * 10000
                     ],
                     backgroundColor: PALETA[0] + 'CC',
                     borderColor: PALETA[0],

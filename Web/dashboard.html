@@ -309,8 +309,8 @@ let ordenTabla    = { col: 'kwh_total', asc: false };
 // ══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
     [datosZonas, datosHorario] = await Promise.all([
-        cargarJSON('resumen_zonas.json'),
-        cargarJSON('consumo_horario.json'),
+        cargarJSON('consumo_por_zona.json'),
+        cargarJSON('consumo_por_hora.json'),
     ]);
 
     if (!datosZonas || !datosHorario) {
@@ -334,11 +334,11 @@ function poblarFiltroZonas() {
     const sel = document.getElementById('filtro-zona');
     datosZonas
         .slice()
-        .sort((a, b) => a.zona_nombre.localeCompare(b.zona_nombre))
+        .sort((a, b) => a.nombre_zona.localeCompare(b.nombre_zona))
         .forEach(z => {
             const opt = document.createElement('option');
             opt.value = z.zona_id;
-            opt.textContent = z.zona_nombre;
+            opt.textContent = z.nombre_zona;
             sel.appendChild(opt);
         });
 }
@@ -349,7 +349,7 @@ function poblarFiltroZonas() {
 function renderKPIs(zonas, horario) {
     const totalKwh    = zonas.reduce((s, z) => s + z.kwh_total, 0);
     const totalCop    = zonas.reduce((s, z) => s + z.costo_cop_total, 0);
-    const totalAnom   = zonas.reduce((s, z) => s + z.anomalias, 0);
+    const totalAnom   = zonas.reduce((s, z) => s + z.total_anomalias, 0);
     const totalAhorro = zonas.reduce((s, z) => s + z.ahorro_kwh_estimado, 0);
 
     document.getElementById('kpi-kwh').textContent       = fmtNum(totalKwh, 0);
@@ -396,7 +396,7 @@ function dibujarChoropleth(geojson) {
     // Mapeo nombre → datos zona (normalizar nombres)
     const zonaMap = {};
     datosZonas.forEach(z => {
-        zonaMap[z.zona_nombre.toUpperCase().trim()] = z;
+        zonaMap[z.nombre_zona.toUpperCase().trim()] = z;
     });
 
     geojsonLayer = L.geoJSON(geojson, {
@@ -435,7 +435,7 @@ function dibujarChoropleth(geojson) {
                 layer.on('mouseout', function() {
                     geojsonLayer.resetStyle(this);
                 });
-                layer.bindTooltip(zona.zona_nombre, {
+                layer.bindTooltip(zona.nombre_zona, {
                     permanent: false, direction: 'center',
                     className: 'leaflet-tooltip'
                 });
@@ -472,7 +472,7 @@ function dibujarMarcadores() {
     };
 
     datosZonas.forEach(zona => {
-        const coord = coordsBogota[zona.zona_nombre];
+        const coord = coordsBogota[zona.nombre_zona];
         if (!coord) return;
         const radio = 800 + (zona.kwh_total / 500);
         L.circleMarker(coord, {
@@ -484,7 +484,7 @@ function dibujarMarcadores() {
         })
         .addTo(mapaLeaflet)
         .on('click', () => mostrarDetalleZona(zona))
-        .bindTooltip(zona.zona_nombre);
+        .bindTooltip(zona.nombre_zona);
     });
 }
 
@@ -495,7 +495,7 @@ function mostrarDetalleZona(zona) {
         : '0.0';
 
     el.innerHTML = `
-        <div class="zona-nombre-titulo">📍 ${zona.zona_nombre}</div>
+        <div class="zona-nombre-titulo">📍 ${zona.nombre_zona}</div>
         <div class="zona-info-dato">
             <span class="zona-info-label">kWh Total</span>
             <span class="zona-info-val">${fmtNum(zona.kwh_total, 2)}</span>
@@ -514,7 +514,7 @@ function mostrarDetalleZona(zona) {
         </div>
         <div class="zona-info-dato">
             <span class="zona-info-label">Anomalías</span>
-            <span class="zona-info-val" style="color:var(--rojo);">${fmtNum(zona.anomalias, 0)}</span>
+            <span class="zona-info-val" style="color:var(--rojo);">${fmtNum(zona.total_anomalias, 0)}</span>
         </div>
         <div class="zona-info-dato">
             <span class="zona-info-label">Registros</span>
@@ -612,7 +612,7 @@ function renderTopZonas(zonas) {
     chartTopZonas = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: top10.map(z => z.zona_nombre),
+            labels: top10.map(z => z.nombre_zona),
             datasets: [{
                 label: 'kWh Total',
                 data: top10.map(z => z.kwh_total),
@@ -710,13 +710,13 @@ function renderTabla(zonas) {
 
     tbody.innerHTML = sorted.map(z => `
         <tr style="cursor:pointer;" onclick="resaltarZona(${z.zona_id})">
-            <td style="font-weight:600;">${z.zona_nombre}</td>
+            <td style="font-weight:600;">${z.nombre_zona}</td>
             <td>${fmtNum(z.kwh_total, 0)}</td>
-            <td>${z.anomalias > 100
-                ? `<span class="badge-critico">${fmtNum(z.anomalias,0)}</span>`
-                : z.anomalias > 30
-                ? `<span class="badge-alerta">${fmtNum(z.anomalias,0)}</span>`
-                : `<span class="badge-normal">${fmtNum(z.anomalias,0)}</span>`
+            <td>${z.total_anomalias > 100
+                ? `<span class="badge-critico">${fmtNum(z.total_anomalias,0)}</span>`
+                : z.total_anomalias > 30
+                ? `<span class="badge-alerta">${fmtNum(z.total_anomalias,0)}</span>`
+                : `<span class="badge-normal">${fmtNum(z.total_anomalias,0)}</span>`
             }</td>
             <td style="color:var(--verde);font-weight:600;">${fmtNum(z.ahorro_kwh_estimado, 2)}</td>
         </tr>
@@ -763,7 +763,7 @@ function aplicarFiltros() {
     const partes = [];
     if (zonaId) {
         const z = datosZonas.find(z => String(z.zona_id) === String(zonaId));
-        if (z) partes.push(`Zona: ${z.zona_nombre}`);
+        if (z) partes.push(`Zona: ${z.nombre_zona}`);
     }
     if (periodo) partes.push(`Período: ${periodo === 'nocturno' ? 'Nocturno' : 'Diurno'}`);
 
