@@ -285,6 +285,153 @@ body {
   z-index: 1;
 }
 
+/* ── Banner de calidad de datos ── */
+.banner-calidad-datos {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: #FFF8E6;
+    border: 1px solid #F4A20D;
+    border-left: 4px solid #F4A20D;
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.83rem;
+    color: #4A3000;
+    line-height: 1.55;
+}
+.banner-calidad-icono { font-size: 1.2rem; flex-shrink: 0; margin-top: 0.1rem; }
+.banner-calidad-texto { flex: 1; }
+.banner-calidad-texto strong { color: #7A4F00; }
+.banner-calidad-cerrar {
+    background: none; border: none; cursor: pointer;
+    font-size: 1rem; color: #7A4F00; flex-shrink: 0;
+    padding: 0 0.25rem; line-height: 1; opacity: 0.7; transition: opacity 0.2s;
+}
+.banner-calidad-cerrar:hover { opacity: 1; }
+
+/* ── Fila de alerta Sumapaz en tablas ── */
+tr.fila-sumapaz { background: #FFFBF0 !important; }
+tr.fila-sumapaz td:first-child::after { content: ' ⚠️'; font-size: 0.8em; }
+
+/* ==========================================================================
+   Estilos Base de la Navbar (Escritorio)
+   ========================================================================== */
+.navbar-iluminacion {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #1b2a4a;
+    padding: 0.75rem 2rem;
+    position: relative;
+    z-index: 1000;
+}
+
+.navbar-brand-custom {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.navbar-nav-custom {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 1rem;
+}
+
+.navbar-nav-custom a {
+    color: #e9ecef;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.navbar-nav-custom a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+/* Botón hamburguesa oculto por defecto en escritorio */
+.navbar-toggle-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 24px;
+    height: 18px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.navbar-toggle-btn .bar {
+    height: 3px;
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+/* ==========================================================================
+   Media Query: Colapso responsivo para tablets y móviles (< 1024px)
+   ========================================================================== */
+@media (max-width: 1024px) {
+    .navbar-toggle-btn {
+        display: flex; /* Mostramos la hamburguesa */
+    }
+
+    .navbar-nav-custom {
+        display: none; /* Ocultamos la lista horizontal */
+        flex-direction: column;
+        width: 100%;
+        position: absolute;
+        top: 100%; /* Se despliega justo debajo de la navbar */
+        left: 0;
+        background-color: #1b2a4a;
+        padding: 1rem 0;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        gap: 0;
+    }
+
+    /* Clase que activa el JavaScript para mostrar el menú */
+    .navbar-nav-custom.active {
+        display: flex;
+    }
+
+    .navbar-nav-custom li {
+        width: 100%;
+    }
+
+    .navbar-nav-custom a {
+        display: block;
+        padding: 0.85rem 2rem;
+        border-radius: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    
+    .navbar-nav-custom li:last-child a {
+        border-bottom: none;
+    }
+
+    /* Animación opcional para transformar las barras en una 'X' al abrir */
+    .navbar-toggle-btn.active .bar:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+    }
+    .navbar-toggle-btn.active .bar:nth-child(2) {
+        opacity: 0;
+    }
+    .navbar-toggle-btn.active .bar:nth-child(3) {
+        transform: translateY(-8px) rotate(-45deg);
+    }
+}
+
 /* ── RESPONSIVE ───────────────────────────────────────────── */
 @media (max-width: 768px) {
   .grafico-grid-2,
@@ -292,6 +439,8 @@ body {
   .navbar-nav-custom { display: none; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+
 
 /* ── LOADING ──────────────────────────────────────────────── */
 .loading {

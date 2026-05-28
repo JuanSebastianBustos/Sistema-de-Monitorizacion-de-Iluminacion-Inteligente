@@ -118,6 +118,13 @@
             margin-top: 0.15rem;
         }
 
+        .heatmap-7x24 { overflow-x:auto; }
+        .heatmap-7x24 table { border-collapse:collapse; font-size:0.7rem; min-width:700px; width:100%; }
+        .heatmap-7x24 th { background:var(--azul-oscuro); color:var(--blanco); padding:0.25rem 0.3rem; font-size:0.65rem; text-align:center; font-weight:600; white-space:nowrap; }
+        .heatmap-7x24 td { width:36px; height:28px; text-align:center; font-size:0.62rem; font-weight:600; border:1px solid rgba(255,255,255,0.1); cursor:default; color:rgba(255,255,255,0.9); }
+        .heatmap-7x24 td:hover { outline:2px solid var(--azul-claro); }
+        .heatmap-7x24 .dia-label { background:var(--gris-fondo); color:var(--texto-principal); font-weight:700; padding:0 0.4rem; text-align:right; width:60px; border:none; white-space:nowrap; }
+
         @media (max-width: 768px) {
             .stats-grid { grid-template-columns: 1fr; }
         }
@@ -171,6 +178,24 @@
                 <div class="grad-bar-h"></div>
                 <span>Alto</span>
                 <span style="margin-left:auto;font-size:0.68rem;">Escala: lux promedio por hora</span>
+            </div>
+        </div>
+
+        <div class="grafico-card" style="margin-bottom:1.5rem;">
+            <div class="grafico-titulo">
+                📅 Heatmap 7 Días × 24 Horas — Wh por Día y Hora
+                <span style="float:right;font-size:0.72rem;font-weight:400;color:var(--texto-suave);">
+                    Mayor intensidad = mayor consumo
+                </span>
+            </div>
+            <div class="heatmap-7x24" id="heatmap-7x24-wrap">
+                <div class="loading"><div class="spinner"></div> Construyendo heatmap...</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;font-size:0.72rem;color:var(--texto-suave);margin-top:0.5rem;">
+                <span>Bajo consumo</span>
+                <div style="flex:1;max-width:200px;height:8px;border-radius:4px;background:linear-gradient(to right,#EBF5FF,#2E5C8A,#1B2A4A);"></div>
+                <span>Alto consumo</span>
+                <span id="nota-dia-mayor" style="margin-left:auto;font-weight:600;color:var(--azul-oscuro);"></span>
             </div>
         </div>
 
@@ -248,6 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderStats(horario);
     renderHeatmap(horario);
+    renderHeatmap7x24(horarioRaw);
     renderGraficoLuxHora(horario);
     renderGraficoAhorro(horario);
     renderComparativo(horario);
@@ -572,6 +598,38 @@ function renderFranjas(horario) {
             }
         }
     });
+}
+
+function renderHeatmap7x24(raw) {
+    const wrap = document.getElementById('heatmap-7x24-wrap');
+    const diasUnicos = [...new Set(raw.map(h => h.dia_semana))].sort((a,b)=>a-b);
+    const diaMap = {}; raw.forEach(h => { diaMap[h.dia_semana] = h.nombre_dia || `Día ${h.dia_semana}`; });
+    const matriz = {}; raw.forEach(h => { if(!matriz[h.dia_semana]) matriz[h.dia_semana]={}; matriz[h.dia_semana][h.hora] = h.kwh_promedio||0; });
+    const vals = raw.map(h => h.kwh_promedio||0), minV = Math.min(...vals), maxV = Math.max(...vals);
+
+    function colorHM(val) {
+        const p = maxV>minV?(val-minV)/(maxV-minV):0;
+        if(p<0.5){const q=p*2;return `rgb(${Math.round(235-(235-46)*q)},${Math.round(245-(245-92)*q)},${Math.round(255-(255-138)*q)})`;}
+        const q=(p-0.5)*2;return `rgb(${Math.round(46+(27-46)*q)},${Math.round(92+(42-92)*q)},${Math.round(138+(74-138)*q)})`;
+    }
+
+    const totDia = diasUnicos.map(d=>({dia:diaMap[d],kwh:Object.values(matriz[d]||{}).reduce((s,v)=>s+v,0)}));
+    const maxD = totDia.reduce((m,x)=>x.kwh>m.kwh?x:m,totDia[0]);
+    const minD = totDia.reduce((m,x)=>x.kwh<m.kwh?x:m,totDia[0]);
+    const notaEl = document.getElementById('nota-dia-mayor');
+    if(notaEl&&maxD) notaEl.textContent = `Mayor: ${maxD.dia} · Menor: ${minD.dia}`;
+
+    let thead = '<tr><th style="width:60px;">Día/Hora</th>'+[...Array(24).keys()].map(h=>`<th>${String(h).padStart(2,'0')}h</th>`).join('')+'</tr>';
+    const tbody = diasUnicos.map(d=>{
+        const esFin = d>=6;
+        return `<tr><td class="dia-label">${diaMap[d]||'Día '+d}</td>`+
+               [...Array(24).keys()].map(h=>{
+                   const v=(matriz[d]&&matriz[d][h])?matriz[d][h]:0;
+                   const wh=(v*1000).toFixed(1);
+                   return `<td style="background:${colorHM(v)};" title="${diaMap[d]||''} ${String(h).padStart(2,'0')}:00 — ${wh} Wh">${wh}</td>`;
+               }).join('')+'</tr>';
+    }).join('');
+    wrap.innerHTML = `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
 }
 </script>
 </body>

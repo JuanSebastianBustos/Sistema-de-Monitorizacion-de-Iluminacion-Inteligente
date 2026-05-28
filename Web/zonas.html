@@ -152,6 +152,27 @@
             margin-bottom: 1.5rem;
         }
 
+        .toggle-escala { display: flex; gap: 0.35rem; align-items: center; margin-bottom: 0.6rem; }
+        .toggle-escala span { font-size: 0.72rem; color: var(--texto-suave); font-weight: 600; }
+        .btn-toggle-esc {
+            background: var(--gris-fondo); border: 1px solid var(--gris-borde); border-radius: 4px;
+            padding: 0.2rem 0.65rem; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+            color: var(--texto-suave); transition: var(--transicion);
+        }
+        .btn-toggle-esc.activo { background: var(--azul-medio); border-color: var(--azul-medio); color: var(--blanco); }
+
+        .convergencia-tabla { width:100%; border-collapse:collapse; font-size:0.82rem; }
+        .convergencia-tabla th { background:var(--azul-oscuro); color:var(--blanco); padding:0.5rem 0.75rem; font-size:0.75rem; text-align:left; }
+        .convergencia-tabla td { padding:0.45rem 0.75rem; border-bottom:1px solid var(--gris-borde); }
+        .convergencia-tabla tr:hover { background:var(--gris-fondo); }
+        .alerta-convergencia-3 { background:#FCE4EC !important; font-weight:700; }
+        .alerta-convergencia-2 { background:#FFF8E6 !important; }
+        .semaforo { font-size:1rem; text-align:center; }
+        .prioridad-badge { display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.6rem; border-radius:12px; font-size:0.72rem; font-weight:700; }
+        .prioridad-alta   { background:#F8D7DA; color:#721C24; }
+        .prioridad-media  { background:#FFF3CD; color:#856404; }
+        .prioridad-normal { background:#D4EDDA; color:#155724; }
+
         @media (max-width: 960px) {
             .zonas-layout { grid-template-columns: 1fr; }
             .kpi-grid-sm { grid-template-columns: repeat(2, 1fr); }
@@ -226,16 +247,48 @@
         <!-- RANKING + SCATTER -->
         <div class="grafico-grid grafico-grid-2" style="margin-bottom:1.5rem;">
             <div class="grafico-card">
-                <div class="grafico-titulo">🏆 Ranking por kWh Total (todas las zonas)</div>
-                <div class="chart-wrap-lg">
-                    <canvas id="grafico-ranking"></canvas>
+                <div class="grafico-titulo" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+                    <span>🏆 Ranking por kWh Total (todas las zonas)</span>
+                    <div style="display:flex;gap:0.35rem;align-items:center;margin-right:0.75rem;">
+                        <span style="font-size:0.72rem;color:var(--texto-suave);font-weight:600;">Métrica:</span>
+                        <button class="btn-toggle-esc activo" data-metrica-ranking="kwh_total"
+                                onclick="cambiarMetricaRanking('kwh_total',this)">Total</button>
+                        <button class="btn-toggle-esc" data-metrica-ranking="kwh_por_habitante"
+                                onclick="cambiarMetricaRanking('kwh_por_habitante',this)">/ Habitante</button>
+                        <button class="btn-toggle-esc" data-metrica-ranking="kwh_por_km2"
+                                onclick="cambiarMetricaRanking('kwh_por_km2',this)">/ km²</button>
+                    </div>
+                    <div class="toggle-escala">
+                        <span>Escala:</span>
+                        <button class="btn-toggle-esc activo" onclick="cambiarEscalaRanking('linear',this)">Lineal</button>
+                        <button class="btn-toggle-esc" onclick="cambiarEscalaRanking('logarithmic',this)">Logarítmica</button>
+                    </div>
                 </div>
+                <div class="chart-wrap-lg"><canvas id="grafico-ranking"></canvas></div>
+                <p style="font-size:0.72rem;color:var(--texto-suave);margin-top:0.35rem;">
+                    💡 Usa la escala logarítmica para comparar zonas pequeñas: Sumapaz (8.187 kWh) es 5× el segundo mayor consumidor (Usme, 1.597 kWh) y comprime visualmente el ranking en escala lineal.
+                </p>
             </div>
             <div class="grafico-card">
-                <div class="grafico-titulo">🔍 Anomalías vs Consumo por Localidad</div>
-                <div class="chart-wrap-lg">
-                    <canvas id="grafico-scatter"></canvas>
+                <div class="grafico-titulo" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+                    <span>🔍 Anomalías vs Consumo por Localidad</span>
+                    <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;font-weight:400;color:var(--texto-suave);cursor:pointer;">
+                        <input type="checkbox" id="chk-excluir-sumapaz" onchange="renderScatter()" style="cursor:pointer;">
+                        Excluir Sumapaz (outlier)
+                    </label>
                 </div>
+                <div class="chart-wrap-lg"><canvas id="grafico-scatter"></canvas></div>
+            </div>
+        </div>
+
+        <!-- CONVERGENCIA GEOGRÁFICA -->
+        <div class="grafico-card" style="margin-bottom:1rem;">
+            <div class="grafico-titulo">🎯 Convergencia Geográfica — Zonas de Intervención Prioritaria</div>
+            <p style="font-size:0.82rem;color:var(--texto-suave);margin-bottom:1rem;">
+                Zonas con fondo rojo concentran simultáneamente alto consumo, bajo cumplimiento normativo y alta tasa de anomalías. Son la máxima prioridad de intervención. (Sumapaz excluida por anomalía de datos.)
+            </p>
+            <div style="overflow-x:auto;" id="tabla-convergencia">
+                <div class="loading"><div class="spinner"></div> Calculando convergencia...</div>
             </div>
         </div>
 
@@ -285,6 +338,9 @@ let metricaActiva = 'kwh_total';
 let ordenTabla = { col: 'kwh_total', asc: false };
 let chartRanking = null;
 let chartScatter = null;
+let escalaRanking = 'linear';
+let metricaRanking = 'kwh_total';
+const LABELS_RANKING = { kwh_total:'kWh Total', kwh_por_habitante:'kWh/Habitante', kwh_por_km2:'kWh/km²' };
 
 const COORDENADAS_BOGOTA = {
     'Usaquén':        [4.7039, -74.0317],
@@ -328,6 +384,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderRanking();
     renderScatter();
     renderTabla();
+    renderConvergencia();
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -562,22 +619,18 @@ function mostrarDetalleZona(zona) {
 function renderRanking() {
     const ctx = document.getElementById('grafico-ranking').getContext('2d');
     if (chartRanking) chartRanking.destroy();
-
-    const sorted = [...datosZonas].sort((a,b) => b.kwh_total - a.kwh_total);
-    const max = sorted[0].kwh_total;
-    const min = sorted[sorted.length-1].kwh_total;
-
+    const sorted = [...datosZonas].filter(z => z[metricaRanking] != null).sort((a,b) => b[metricaRanking] - a[metricaRanking]);
+    const max = sorted[0].kwh_total, min = sorted[sorted.length-1].kwh_total;
     chartRanking = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: sorted.map(z => z.nombre_zona),
+            labels: sorted.map(z => z.nombre_zona === 'Sumapaz' ? '⚠️ Sumapaz' : z.nombre_zona),
             datasets: [{
                 label: 'kWh Total',
-                data: sorted.map(z => z.kwh_total),
-                backgroundColor: sorted.map(z => escalaColor(z.kwh_total, min, max) + 'CC'),
-                borderColor:     sorted.map(z => escalaColor(z.kwh_total, min, max)),
-                borderWidth: 1,
-                borderRadius: 3,
+                data: sorted.map(z => z[metricaRanking]),
+                backgroundColor: sorted.map(z => z.nombre_zona === 'Sumapaz' ? '#F4A20D99' : escalaColor(z.kwh_total, min, max) + 'CC'),
+                borderColor:     sorted.map(z => z.nombre_zona === 'Sumapaz' ? '#F4A20D' : escalaColor(z.kwh_total, min, max)),
+                borderWidth: 1, borderRadius: 3,
             }]
         },
         options: {
@@ -589,49 +642,55 @@ function renderRanking() {
                     callbacks: {
                         label: ctx => {
                             const z = sorted[ctx.dataIndex];
-                            return [
-                                `kWh: ${fmtNum(ctx.raw, 2)}`,
-                                `Costo: ${fmtCOP(z.costo_cop_total)}`,
-                                `Anomalías: ${fmtNum(z.total_anomalias, 0)}`
-                            ];
+                            const l = [`kWh: ${fmtNum(ctx.raw,2)}`, `Costo: ${fmtCOP(z.costo_cop_total)}`, `Anomalías: ${fmtNum(z.total_anomalias,0)}`];
+                            if (z.nombre_zona === 'Sumapaz') l.push('⚠️ Ver nota de calidad de datos');
+                            return l;
                         }
                     }
                 }
             },
             scales: {
-                x: {
-                    ...OPCIONES_BASE_CHART.scales.x,
-                    ticks: { callback: v => fmtNum(v, 0) }
-                },
-                y: {
-                    ...OPCIONES_BASE_CHART.scales.y,
-                    ticks: { font: { size: 9 } }
-                }
+                x: { ...OPCIONES_BASE_CHART.scales.x, type: escalaRanking, ticks: { callback: v => fmtNum(v,0) } },
+                y: { ...OPCIONES_BASE_CHART.scales.y, ticks: { font: { size: 9 } } }
             }
         }
     });
 }
 
+function cambiarEscalaRanking(escala, btn) {
+    document.querySelectorAll('.btn-toggle-esc').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    escalaRanking = escala;
+    renderRanking();
+}
+
+function cambiarMetricaRanking(metrica, btn) {
+    document.querySelectorAll('[data-metrica-ranking]').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    metricaRanking = metrica;
+    renderRanking();
+}
 // ══════════════════════════════════════════════════════════════
 //  Scatter — Anomalías vs Consumo
 // ══════════════════════════════════════════════════════════════
 function renderScatter() {
     const ctx = document.getElementById('grafico-scatter').getContext('2d');
     if (chartScatter) chartScatter.destroy();
-
-    const maxKwh  = Math.max(...datosZonas.map(z => z.kwh_total));
-    const minKwh  = Math.min(...datosZonas.map(z => z.kwh_total));
-
+    const excluir = document.getElementById('chk-excluir-sumapaz')?.checked;
+    const datos   = excluir ? datosZonas.filter(z => z.nombre_zona !== 'Sumapaz') : datosZonas;
+    const maxKwh  = Math.max(...datos.map(z => z.kwh_total));
+    const minKwh  = Math.min(...datos.map(z => z.kwh_total));
     chartScatter = new Chart(ctx, {
         type: 'scatter',
         data: {
             datasets: [{
                 label: 'Localidades',
-                data: datosZonas.map(z => ({ x: z.kwh_total, y: z.total_anomalias, zona: z })),
-                backgroundColor: datosZonas.map(z => escalaColor(z.kwh_total, minKwh, maxKwh) + 'CC'),
-                borderColor:     datosZonas.map(z => escalaColor(z.kwh_total, minKwh, maxKwh)),
+                data: datos.map(z => ({ x: z.kwh_total, y: z.total_anomalias, zona: z })),
+                backgroundColor: datos.map(z => z.nombre_zona === 'Sumapaz' ? '#F4A20DCC' : escalaColor(z.kwh_total, minKwh, maxKwh) + 'CC'),
+                borderColor:     datos.map(z => z.nombre_zona === 'Sumapaz' ? '#F4A20D' : escalaColor(z.kwh_total, minKwh, maxKwh)),
                 borderWidth: 1.5,
-                pointRadius: datosZonas.map(z => 5 + Math.sqrt(z.ahorro_kwh_estimado) * 0.4),
+                pointRadius: datos.map(z => 5 + Math.sqrt(z.ahorro_kwh_estimado) * 0.4),
+                pointStyle:  datos.map(z => z.nombre_zona === 'Sumapaz' ? 'triangle' : 'circle'),
                 pointHoverRadius: 8,
             }]
         },
@@ -643,27 +702,16 @@ function renderScatter() {
                     callbacks: {
                         label: ctx => {
                             const z = ctx.raw.zona;
-                            return [
-                                z.nombre_zona,
-                                `kWh: ${fmtNum(z.kwh_total, 0)}`,
-                                `Anomalías: ${fmtNum(z.total_anomalias, 0)}`,
-                                `Ahorro: ${fmtNum(z.ahorro_kwh_estimado, 2)} kWh`,
-                            ];
+                            const l = [z.nombre_zona, `kWh: ${fmtNum(z.kwh_total,0)}`, `Anomalías: ${fmtNum(z.total_anomalias,0)}`, `Ahorro: ${fmtNum(z.ahorro_kwh_estimado,2)} kWh`];
+                            if (z.nombre_zona === 'Sumapaz') l.push('⚠️ Outlier — ver nota de calidad');
+                            return l;
                         }
                     }
                 }
             },
             scales: {
-                x: {
-                    ...OPCIONES_BASE_CHART.scales.x,
-                    title: { display: true, text: 'kWh Total', color: '#6C757D', font: { size: 10 } },
-                    ticks: { callback: v => fmtNum(v, 0) }
-                },
-                y: {
-                    ...OPCIONES_BASE_CHART.scales.y,
-                    title: { display: true, text: 'Anomalías', color: '#6C757D', font: { size: 10 } },
-                    ticks: { callback: v => fmtNum(v, 0) }
-                }
+                x: { ...OPCIONES_BASE_CHART.scales.x, title: { display:true, text:'kWh Total', color:'#6C757D', font:{size:10} }, ticks: { callback: v => fmtNum(v,0) } },
+                y: { ...OPCIONES_BASE_CHART.scales.y, title: { display:true, text:'Anomalías', color:'#6C757D', font:{size:10} }, ticks: { callback: v => fmtNum(v,0) } }
             }
         }
     });
@@ -693,7 +741,7 @@ function renderTabla() {
         const colorA  = escalaColor(z.total_anomalias,  0, maxAnom);
 
         return `
-        <tr onclick="mostrarDetalleZona(datosZonas.find(x=>x.zona_id===${z.zona_id}))" style="cursor:pointer;">
+        <tr onclick="mostrarDetalleZona(datosZonas.find(x=>x.zona_id===${z.zona_id}))" style="cursor:pointer;" >
             <td style="color:var(--texto-suave);font-weight:600;">${i+1}</td>
             <td style="font-weight:600;">${z.nombre_zona}</td>
             <td>
@@ -706,12 +754,7 @@ function renderTabla() {
             <td>${fmtNum(z.lux_promedio, 0)}</td>
             <td>
                 <div class="pct-bar">
-                    ${z.total_anomalias > 500
-                        ? `<span class="badge-critico">${fmtNum(z.total_anomalias,0)}</span>`
-                        : z.total_anomalias > 100
-                        ? `<span class="badge-alerta">${fmtNum(z.total_anomalias,0)}</span>`
-                        : `<span class="badge-normal">${fmtNum(z.total_anomalias,0)}</span>`
-                    }
+                    ${badgeAnomalias(z.total_anomalias)}
                     <div class="pct-mini"><div class="pct-mini-fill" style="width:${pctAnom}%;background:${colorA};"></div></div>
                 </div>
             </td>
@@ -731,6 +774,45 @@ function ordenarTabla(col) {
     ordenTabla.col = col;
     renderTabla();
 }
+
+function renderConvergencia() {
+    const el = document.getElementById('tabla-convergencia');
+    const sinSumapaz = datosZonas.filter(z => z.nombre_zona !== 'Sumapaz');
+    const topConsumo  = [...sinSumapaz].sort((a,b) => b.kwh_total - a.kwh_total).slice(0,5).map(z=>z.zona_id);
+    const bajoCumplim = [...sinSumapaz].sort((a,b) => (a.pct_cumplimiento_horario||100)-(b.pct_cumplimiento_horario||100)).slice(0,5).map(z=>z.zona_id);
+    const topAnom     = [...sinSumapaz].sort((a,b) => b.total_anomalias - a.total_anomalias).slice(0,5).map(z=>z.zona_id);
+
+    const filas = sinSumapaz.map(z => ({
+        zona: z,
+        alto_consumo:   topConsumo.includes(z.zona_id),
+        bajo_cumplim:   bajoCumplim.includes(z.zona_id),
+        alta_anomalias: topAnom.includes(z.zona_id),
+    })).map(f => ({ ...f, alertas: [f.alto_consumo, f.bajo_cumplim, f.alta_anomalias].filter(Boolean).length }))
+    .sort((a,b) => b.alertas - a.alertas);
+
+    const badgePrioridad = n => n===3 ? `<span class="prioridad-badge prioridad-alta">🔴 Crítica</span>`
+                               : n===2 ? `<span class="prioridad-badge prioridad-media">🟡 Alta</span>`
+                               : `<span class="prioridad-badge prioridad-normal">🟢 Normal</span>`;
+
+    el.innerHTML = `<table class="convergencia-tabla">
+        <thead><tr>
+            <th>Localidad</th>
+            <th style="text-align:center;">⚡ Alto Consumo<br><small style="font-weight:400;">Top 5 kWh</small></th>
+            <th style="text-align:center;">✅ Bajo Cumplimiento<br><small style="font-weight:400;">Bottom 5 %</small></th>
+            <th style="text-align:center;">⚠️ Altas Anomalías<br><small style="font-weight:400;">Top 5 eventos</small></th>
+            <th>Prioridad</th>
+        </tr></thead>
+        <tbody>
+        ${filas.map(f => `<tr class="${f.alertas===3?'alerta-convergencia-3':f.alertas===2?'alerta-convergencia-2':''}">
+            <td style="font-weight:600;">${f.zona.nombre_zona}</td>
+            <td class="semaforo">${f.alto_consumo   ?'🔴':'🟢'}</td>
+            <td class="semaforo">${f.bajo_cumplim   ?'🔴':'🟢'}</td>
+            <td class="semaforo">${f.alta_anomalias ?'🔴':'🟢'}</td>
+            <td>${badgePrioridad(f.alertas)}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+}
+
 </script>
 </body>
 </html>

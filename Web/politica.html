@@ -88,6 +88,8 @@
     </style>
 </head>
 <body>
+    <script>inyectarNavbar();</script>
+    
 
     <div class="contenido-principal">
         <div style="margin-bottom:1.25rem;">
@@ -148,6 +150,22 @@
                 </p>
             </div>
         </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+            <div class="kpi-card rojo">
+                <div class="kpi-etiqueta">🚦 Falla de Servicio Nocturno</div>
+                <div class="kpi-valor" id="kpi-sin-servicio">—</div>
+                <div class="kpi-unidad">registros sin iluminación en horario nocturno</div>
+            </div>
+            <div class="kpi-card amarillo">
+                <div class="kpi-etiqueta">💸 Desperdicio Diurno</div>
+                <div class="kpi-valor" id="kpi-desperdicio-diurno">—</div>
+                <div class="kpi-unidad">registros con luminaria encendida de día</div>
+            </div>
+        </div>
+        <div id="nota-tipos-incumplimiento" style="background:var(--gris-fondo);border-radius:6px;
+            padding:0.85rem 1rem;margin-bottom:1.5rem;font-size:0.83rem;line-height:1.55;
+            border-left:4px solid var(--rojo);"></div>
 
         <!-- Mapa + panel -->
         <div class="politica-layout">
@@ -217,6 +235,37 @@
                             <tr><td colspan="7"><div class="loading"><div class="spinner"></div> Cargando datos...</div></td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+        <div class="grafico-card" style="margin-top:1rem;">
+            <div class="grafico-titulo">⛅ Incumplimiento y Condición Climática</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:center;">
+                <div>
+                    <div style="background:#EBF3FB;border-radius:6px;padding:1rem;margin-bottom:0.75rem;">
+                        <div style="font-size:0.75rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;margin-bottom:0.3rem;">
+                            Mayor costo de incumplimiento
+                        </div>
+                        <div style="font-size:1.8rem;font-weight:800;color:var(--azul-oscuro);">Nublado</div>
+                        <div style="font-size:0.85rem;color:var(--texto-suave);margin-top:0.2rem;">
+                            $39.198 COP — 35,2% del costo total de incumplimiento del sistema
+                        </div>
+                    </div>
+                    <div style="font-size:0.8rem;color:var(--texto-suave);line-height:1.55;">
+                        La condición Nublado supera incluso a Lluvioso, siendo ~3,4× mayor que Despejado ($11.436 COP).
+                    </div>
+                </div>
+                <div>
+                    <p style="font-size:0.85rem;color:var(--texto-principal);line-height:1.6;margin-bottom:0.75rem;">
+                        <strong>¿Por qué ocurre esto?</strong><br>
+                        Los algoritmos de control tienen mayor dificultad para detectar el umbral de oscuridad bajo cielos nublados.
+                        La radiación solar difusa puede mantenerse por encima del umbral de disparo durante horas, retrasando el encendido.
+                    </p>
+                    <div style="background:var(--gris-fondo);border-radius:6px;padding:0.75rem;
+                                font-size:0.8rem;color:var(--azul-oscuro);border-left:3px solid var(--azul-medio);">
+                        <strong>Recomendación:</strong> Ajustar el umbral de radiación solar para días con cobertura nubosa >60%.
+                        Mejora de <strong>costo cero</strong> de implementación.
+                    </div>
                 </div>
             </div>
         </div>
@@ -311,21 +360,49 @@ function renderKPIs() {
     document.getElementById('kpi-kwh-desperd').textContent    = fmtNum(totalKwh, 0) + ' kWh';
     document.getElementById('kpi-zona-brecha').textContent    = peorZona.zona_nombre;
     document.getElementById('kpi-zona-brecha-val').textContent= fmtPct(peorZona.pct_cumplimiento) + ' cumplimiento';
+
+    const glob       = window._politicaGlobales || {};
+    const sinServ    = glob.registros_sin_servicio ?? 0;
+    const despDiurno = glob.registros_desperdicio_diurno ?? 0;
+    const ratio      = despDiurno > 0 ? (sinServ / despDiurno).toFixed(1) : '—';
+    document.getElementById('kpi-sin-servicio').textContent      = fmtNum(sinServ, 0);
+    document.getElementById('kpi-desperdicio-diurno').textContent = fmtNum(despDiurno, 0);
+    const notaEl = document.getElementById('nota-tipos-incumplimiento');
+    if (notaEl) notaEl.innerHTML = `<strong>🔍 Diagnóstico:</strong> el principal problema del sistema no es el <em>desperdicio energético</em> (${fmtNum(despDiurno,0)} eventos diurnos) sino la <strong>ausencia de servicio nocturno</strong> (${fmtNum(sinServ,0)} registros — ratio ${ratio}:1). Este último impacta directamente la <strong>seguridad pública</strong>.`;
 }
 
 // ══════════════════════════════════════════════════════════════
 //  Gauges
 // ══════════════════════════════════════════════════════════════
 function renderGauges() {
-    // Usar valores reales de cumplimiento_politicas.json → globales
-    const globales    = window._politicaGlobales || {};
-    const promedioH   = globales.pct_cumplimiento_horario
-                        ?? (datosPolítica.reduce((s,z) => s + z.pct_cumplimiento, 0) / datosPolítica.length);
-    const promedioLux = globales.pct_cumplimiento_lux
-                        ?? (datosPolítica.reduce((s,z) => s + (z.pct_cumplimiento_lux ?? z.pct_cumplimiento), 0) / datosPolítica.length);
+    const globales  = window._politicaGlobales || {};
+    const promedioH = globales.pct_cumplimiento_horario
+                      ?? (datosPolítica.reduce((s,z)=>s+z.pct_cumplimiento,0)/datosPolítica.length);
 
-    crearGauge('gauge-horario',  promedioH,   'gauge-horario-val',  '#1A7A4A', 'horario correcto');
-    crearGauge('gauge-lux',      promedioLux, 'gauge-lux-val',      '#2E5C8A', 'dentro del rango lux');
+    crearGauge('gauge-horario', promedioH, 'gauge-horario-val', '#1A7A4A', 'horario correcto');
+
+    const luxVal    = globales.pct_cumplimiento_lux;
+    const luxValido = luxVal != null && luxVal > 0;
+
+    if (luxValido) {
+        crearGauge('gauge-lux', luxVal, 'gauge-lux-val', '#2E5C8A', 'dentro del rango lux');
+    } else {
+        const contenedor = document.getElementById('gauge-lux')?.closest('.grafico-card');
+        if (contenedor) {
+            const titulo = contenedor.querySelector('.grafico-titulo')?.textContent || '';
+            contenedor.innerHTML = `
+                <div class="grafico-titulo">${titulo}</div>
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                            min-height:200px;padding:1.5rem;text-align:center;">
+                    <div style="font-size:2.5rem;margin-bottom:0.75rem;">⚠️</div>
+                    <div style="font-weight:700;color:var(--texto-principal);margin-bottom:0.4rem;">Dato no disponible</div>
+                    <div style="font-size:0.8rem;color:var(--texto-suave);max-width:260px;line-height:1.5;">
+                        El cálculo de cumplimiento de lux no pudo verificarse en el dataset de origen.
+                        Requiere revisión de la fórmula de cálculo en el ETL.
+                    </div>
+                </div>`;
+        }
+    }
 }
 
 function crearGauge(canvasId, pct, valId, color, sub) {
@@ -652,7 +729,7 @@ function renderTabla() {
             <td>${fmtCOP(z.costo_desperdicio_cop)}</td>
             <td>
                 <div class="pct-bar">
-                    <span>${fmtNum(z.total_anomalias, 0)}</span>
+                    <span>${badgeAnomalias(z.total_anomalias)}</span>
                     <div class="pct-mini"><div class="pct-mini-fill" style="width:${pctAnom}%;background:var(--amarillo);"></div></div>
                 </div>
             </td>

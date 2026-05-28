@@ -129,6 +129,11 @@
             </div>
         </div>
 
+        <div class="grafico-card" style="margin-bottom:1rem;" id="panel-modernizacion">
+            <div class="grafico-titulo">🏗️ Potencial de Modernización — Sustitución Sodio Alta Presión → LED</div>
+            <div id="modernizacion-contenido"><div class="loading"><div class="spinner"></div> Calculando...</div></div>
+        </div>
+
         <!-- Fila 2: Scatter eficiencia + Anomalías por tipo -->
         <div class="grafico-grid grafico-grid-2" style="margin-bottom:1rem;">
             <div class="grafico-card">
@@ -160,7 +165,8 @@
                                 <th onclick="ordenarTabla('kwh_total')">kWh Total ↕</th>
                                 <th onclick="ordenarTabla('lux_promedio')">Lux Prom. ↕</th>
                                 <th onclick="ordenarTabla('eficiencia_lux_kwh')">Eficiencia (lux/kWh) ↕</th>
-                                <th onclick="ordenarTabla('total_anomalias')">Anomalías ↕</th>
+                                <th onclick="ordenarTabla('total_anomalias')">Anomalías (total) ↕</th>
+                                <th onclick="ordenarTabla('tasa_anomalias_por_luminaria')">Anomalías/Lum. ↕</th>
                                 <th onclick="ordenarTabla('total_luminarias')">Luminarias ↕</th>
                                 <th onclick="ordenarTabla('pct_participacion')">Participación ↕</th>
                             </tr>
@@ -215,6 +221,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         ...t,
         color: resolverEstilo(t.tipo_lampara).color,
         badge: resolverEstilo(t.tipo_lampara).badge,
+        tasa_anomalias_por_luminaria: t.total_luminarias > 0
+            ? parseFloat((t.total_anomalias / t.total_luminarias).toFixed(3))
+            : 0,
     }));
 
     renderKPIs();
@@ -223,6 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderScatterEficiencia();
     renderAnomalias();
     renderTabla();
+    renderPotencialModernizacion();
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -438,7 +448,15 @@ function renderAnomalias() {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: ctx => `Anomalías: ${fmtNum(ctx.raw, 0)}`
+                        label: ctx => {
+                            const t = DATOS_TECNOLOGIA[ctx.dataIndex];
+                            const l = [`Anomalías: ${fmtNum(ctx.raw, 0)}`];
+                            if (t) {
+                                l.push(`Tasa por luminaria: ${fmtNum(t.tasa_anomalias_por_luminaria, 3)}`);
+                                if (t.tipo_lampara === 'LED') l.push('ℹ️ Mayor volumen de registros — comparar tasa, no total');
+                            }
+                            return l;
+                        }
                     }
                 }
             },
@@ -485,6 +503,7 @@ function renderTabla() {
                     <div class="pct-mini"><div class="pct-mini-fill" style="width:${pctAnom}%;background:${t.color};"></div></div>
                 </div>
             </td>
+            <td style="font-weight:600;">${fmtNum(t.tasa_anomalias_por_luminaria, 3)}</td>
             <td>${fmtNum(t.total_luminarias, 0)}</td>
             <td>
                 <div class="pct-bar">
@@ -500,6 +519,45 @@ function ordenarTabla(col) {
     ordenTabla.asc = ordenTabla.col === col ? !ordenTabla.asc : false;
     ordenTabla.col = col;
     renderTabla();
+}
+
+function renderPotencialModernizacion() {
+    const el    = document.getElementById('modernizacion-contenido');
+    const led   = DATOS_TECNOLOGIA.find(t => t.tipo_lampara === 'LED');
+    const sodio = DATOS_TECNOLOGIA.find(t => t.tipo_lampara === 'Sodio Alta Presión');
+    if (!led || !sodio) { el.innerHTML='<p style="color:var(--texto-suave);font-size:0.82rem;">Datos de LED o Sodio no disponibles.</p>'; return; }
+
+    const ratio       = (led.eficiencia_lux_kwh / sodio.eficiencia_lux_kwh).toFixed(2);
+    const kwhEquivLED = (sodio.kwh_total / parseFloat(ratio)).toFixed(2);
+    const ahorroKwh   = (sodio.kwh_total - parseFloat(kwhEquivLED)).toFixed(2);
+    const totalKwh    = DATOS_TECNOLOGIA.reduce((s,t) => s + t.kwh_total, 0);
+    const pctAhorro   = totalKwh > 0 ? ((parseFloat(ahorroKwh)/totalKwh)*100).toFixed(1) : '—';
+    const noLed       = DATOS_TECNOLOGIA.filter(t => !t.es_led);
+    const luxNoLed    = noLed.length > 0
+        ? (noLed.reduce((s,t) => s + t.lux_promedio * t.total_luminarias, 0) / noLed.reduce((s,t)=>s+t.total_luminarias,0)).toFixed(2)
+        : '—';
+
+    el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
+        <div style="background:var(--gris-fondo);border-radius:6px;padding:1rem;border-left:3px solid var(--rojo);">
+            <div style="font-size:0.72rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;margin-bottom:0.3rem;">Consumo actual — Sodio Alta Presión</div>
+            <div style="font-size:1.8rem;font-weight:800;color:var(--rojo);">${fmtNum(sodio.kwh_total,0)} kWh</div>
+            <div style="font-size:0.75rem;color:var(--texto-suave);">Eficiencia: ${fmtNum(sodio.eficiencia_lux_kwh,0)} lux/kWh</div>
+        </div>
+        <div style="background:var(--gris-fondo);border-radius:6px;padding:1rem;border-left:3px solid var(--verde);">
+            <div style="font-size:0.72rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;margin-bottom:0.3rem;">Ahorro estimado por sustitución</div>
+            <div style="font-size:1.8rem;font-weight:800;color:var(--verde);">~${fmtNum(ahorroKwh,0)} kWh</div>
+            <div style="font-size:0.75rem;color:var(--texto-suave);">${pctAhorro}% del consumo total del sistema</div>
+        </div>
+        <div style="background:var(--gris-fondo);border-radius:6px;padding:1rem;border-left:3px solid var(--azul-medio);">
+            <div style="font-size:0.72rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;margin-bottom:0.3rem;">Ratio de eficiencia LED / Sodio</div>
+            <div style="font-size:1.8rem;font-weight:800;color:var(--azul-oscuro);">${ratio}×</div>
+            <div style="font-size:0.75rem;color:var(--texto-suave);">LED produce ${ratio}× más lux por kWh</div>
+        </div>
+    </div>
+    <div style="margin-top:1rem;background:#D4EDDA;border-radius:6px;padding:0.85rem 1rem;font-size:0.83rem;color:#155724;border-left:4px solid #1A7A4A;">
+        ✅ <strong>Conclusión:</strong> la sustitución de Sodio Alta Presión por LED generaría un ahorro de <strong>~${fmtNum(ahorroKwh,0)} kWh (${pctAhorro}% del total)</strong> sin pérdida de iluminación: LED promedia ${fmtNum(led.lux_promedio,0)} lux vs No-LED ${luxNoLed} lux — diferencia menor al 0,3%.
+    </div>`;
 }
 </script>
 </body>

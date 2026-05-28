@@ -217,7 +217,16 @@
                     <canvas id="grafico-acierto-hora"></canvas>
                 </div>
                 <div class="nota-perfecto">
-                    💡 El clasificador alcanza 100% de precisión en todas las horas. Esto refleja que el encendido/apagado de luminarias sigue un patrón determinístico muy claro según la radiación solar y la hora.
+                    💡 <strong>¿Por qué 100% de precisión?</strong>
+                    En el dataset simulado, el estado de encendido sigue un patrón completamente determinístico:
+                    las luminarias encienden cuando la radiación solar cae por debajo de un umbral fijo.
+                    El clasificador Random Forest aprende esta regla perfectamente porque no hay ruido en los
+                    datos de entrenamiento.<br><br>
+                    <strong>En datos reales</strong> este patrón tendría variabilidad por: fallas de sensores,
+                    luminarias averiadas, eventos climáticos no anticipados y comportamientos atípicos.
+                    La precisión esperada en producción sería <strong>~85–95%</strong>. La precisión perfecta
+                    es un indicador del origen simulado del dataset, no de calidad excepcional del modelo,
+                    y los resultados deben validarse con datos operativos reales antes de su uso en producción.
                 </div>
             </div>
             <div class="grafico-card">
@@ -484,30 +493,50 @@ function renderAciertoPorHora() {
 function renderImpacto() {
     const imp = modeloDatos.impacto;
     document.getElementById('impacto-contenido').innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:0.5rem 0;">
-            <div class="kpi-card verde" style="text-align:center;">
-                <div class="kpi-etiqueta">Ahorro total estimado</div>
-                <div class="kpi-valor">${fmtNum(imp.ahorro_total_kwh, 2)}</div>
-                <div class="kpi-unidad">kWh</div>
-            </div>
-            <div class="kpi-card rojo" style="text-align:center;">
-                <div class="kpi-etiqueta">kWh desperdiciados (actual)</div>
-                <div class="kpi-valor">${fmtNum(imp.kwh_desperdiciados, 2)}</div>
-                <div class="kpi-unidad">kWh detectados</div>
-            </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:0.5rem 0;">
+        <div class="kpi-card verde" style="text-align:center;">
+            <div class="kpi-etiqueta">Ahorro por optimización ML</div>
+            <div class="kpi-valor">${fmtNum(imp.ahorro_total_kwh, 2)}</div>
+            <div class="kpi-unidad">kWh (~15,5% del consumo total)</div>
         </div>
-        <div style="background:var(--gris-fondo);border-radius:6px;padding:1rem;margin-top:0.5rem;">
-            <div style="font-size:0.82rem;font-weight:600;color:var(--azul-oscuro);margin-bottom:0.5rem;">
-                💡 Ahorro promedio por luminaria
-            </div>
-            <div style="font-size:2rem;font-weight:700;color:var(--verde);">${fmtNum(imp.ahorro_promedio_por_luminaria_kwh, 2)} kWh</div>
-            <p style="font-size:0.78rem;color:var(--texto-suave);margin-top:0.35rem;">
-                Aplicando las recomendaciones del modelo (encendido óptimo basado en radiación solar y condición climática)
-            </p>
+        <div class="kpi-card rojo" style="text-align:center;">
+            <div class="kpi-etiqueta">kWh desperdiciados (actual)</div>
+            <div class="kpi-valor">${fmtNum(imp.kwh_desperdiciados, 2)}</div>
+            <div class="kpi-unidad">kWh detectados</div>
         </div>
-    `;
+    </div>
+    <div style="background:var(--gris-fondo);border-radius:6px;padding:1rem;margin-top:0.5rem;">
+        <div style="font-size:0.82rem;font-weight:600;color:var(--azul-oscuro);margin-bottom:0.35rem;">
+            💡 Ahorro promedio por luminaria
+        </div>
+        <div style="font-size:2rem;font-weight:700;color:var(--verde);">${fmtNum(imp.ahorro_promedio_por_luminaria_kwh, 2)} kWh</div>
+    </div>
+    <div style="margin-top:0.75rem;background:#EBF3FB;border-radius:6px;padding:0.85rem 1rem;
+                font-size:0.82rem;color:var(--azul-oscuro);border-left:4px solid var(--azul-medio);">
+        <strong>📊 Comparativo de intervenciones complementarias:</strong>
+        <table style="width:100%;margin-top:0.5rem;font-size:0.8rem;border-collapse:collapse;">
+            <tr style="border-bottom:1px solid rgba(46,92,138,0.2);">
+                <td style="padding:0.3rem 0;color:var(--texto-suave);">Optimización por ML (este modelo)</td>
+                <td style="text-align:right;font-weight:700;color:var(--verde);">~${fmtNum(imp.ahorro_total_kwh,0)} kWh</td>
+                <td style="text-align:right;padding-left:0.5rem;color:var(--texto-suave);">~15,5%</td>
+            </tr>
+            <tr>
+                <td style="padding:0.3rem 0;color:var(--texto-suave);">Sustitución Sodio → LED (tecnológica)</td>
+                <td style="text-align:right;font-weight:700;color:var(--verde);">~4.204 kWh</td>
+                <td style="text-align:right;padding-left:0.5rem;color:var(--texto-suave);">~24,9%</td>
+            </tr>
+            <tr style="border-top:2px solid var(--azul-medio);font-weight:700;">
+                <td style="padding:0.3rem 0;">Ahorro combinado (ambas intervenciones)</td>
+                <td style="text-align:right;color:var(--verde);">~${fmtNum(imp.ahorro_total_kwh + 4204, 0)} kWh</td>
+                <td style="text-align:right;padding-left:0.5rem;color:var(--texto-suave);">~40%</td>
+            </tr>
+        </table>
+        <p style="font-size:0.75rem;color:var(--texto-suave);margin-top:0.5rem;">
+            La modernización tecnológica tiene mayor impacto absoluto, pero ambas intervenciones
+            son complementarias y pueden sumar potencialmente el 40% del consumo actual.
+        </p>
+    </div>`;
 }
-
 // ══════════════════════════════════════════════════════════════
 //  Tabla de features
 // ══════════════════════════════════════════════════════════════

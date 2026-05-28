@@ -110,6 +110,29 @@
             text-align: center; padding: 1.5rem;
             font-size: 0.82rem; margin-top: 2rem;
         }
+        .hallazgos-seccion { background: var(--gris-fondo); padding: 3rem 2rem; }
+        .hallazgos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.25rem; max-width: 1200px; margin: 0 auto;
+        }
+        .hallazgo-card {
+            background: var(--blanco); border-radius: var(--radio-tarjeta);
+            padding: 1.5rem; box-shadow: var(--sombra);
+            display: flex; flex-direction: column; gap: 0.5rem;
+            transition: var(--transicion);
+        }
+        .hallazgo-card:hover { box-shadow: var(--sombra-hover); transform: translateY(-2px); }
+        .hallazgo-icono { font-size: 1.8rem; }
+        .hallazgo-titulo {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--azul-medio);
+        }
+        .hallazgo-numero { font-size: 1.5rem; font-weight: 800; color: var(--azul-oscuro); line-height: 1; }
+        .hallazgo-texto { font-size: 0.88rem; color: var(--texto-principal); line-height: 1.55; }
+        .hallazgo-card.urgente  { border-top: 4px solid #C0392B; }
+        .hallazgo-card.positivo { border-top: 4px solid #1A7A4A; }
+        .hallazgo-card.alerta   { border-top: 4px solid #F4A20D; }
     </style>
 </head>
 <body>
@@ -177,6 +200,41 @@
                     <div class="flujo-icono">📊</div>
                     <div class="flujo-titulo">Análisis y Visualización</div>
                     <div class="flujo-desc">Dashboard web interactivo + Power BI + modelo ML de predicción</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HALLAZGOS PRINCIPALES -->
+    <section class="hallazgos-seccion">
+        <div style="max-width:1200px;margin:0 auto;">
+            <h2 class="seccion-titulo" style="text-align:center;margin-bottom:2rem;">
+                🔍 Hallazgos Principales del Análisis
+            </h2>
+            <div class="hallazgos-grid">
+                <div class="hallazgo-card urgente">
+                    <div class="hallazgo-icono">🗺️</div>
+                    <div class="hallazgo-titulo">Convergencia Geográfica</div>
+                    <div class="hallazgo-numero">Sur de Bogotá</div>
+                    <div class="hallazgo-texto">Usme, Ciudad Bolívar y San Cristóbal concentran simultáneamente el mayor consumo, el menor cumplimiento normativo y los sensores más deteriorados del sistema.</div>
+                </div>
+                <div class="hallazgo-card alerta">
+                    <div class="hallazgo-icono">💡</div>
+                    <div class="hallazgo-titulo">Modernización Tecnológica</div>
+                    <div class="hallazgo-numero">~4.204 kWh</div>
+                    <div class="hallazgo-texto">Ahorro estimado si se sustituye el parque de Sodio Alta Presión por LED. Equivale al 24,9% del consumo total, sin reducción en calidad de iluminación.</div>
+                </div>
+                <div class="hallazgo-card urgente">
+                    <div class="hallazgo-icono">🚦</div>
+                    <div class="hallazgo-titulo">Falla de Servicio vs. Desperdicio</div>
+                    <div class="hallazgo-numero">9,8 : 1</div>
+                    <div class="hallazgo-texto">El problema principal no es el desperdicio diurno (3.868 registros), sino la ausencia de iluminación nocturna cuando el sistema debería encender (38.055 registros).</div>
+                </div>
+                <div class="hallazgo-card positivo">
+                    <div class="hallazgo-icono">✅</div>
+                    <div class="hallazgo-titulo">Cumplimiento Horario Global</div>
+                    <div class="hallazgo-numero">92,39%</div>
+                    <div class="hallazgo-texto">El sistema opera correctamente en el 92,39% del tiempo. El modelo ML predice el estado óptimo con 100% de precisión sobre datos simulados, validando la lógica de control por radiación solar.</div>
                 </div>
             </div>
         </div>

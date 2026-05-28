@@ -119,6 +119,57 @@
         .corr-positiva { background: #F8D7DA; color: #721C24; }
         .corr-debil    { background: #FFF3CD; color: #856404; }
 
+        .temp-resumen-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+        }
+
+        /* Sub-tarjetas de indicadores (KPIs) */
+        .kpi-temp-card {
+            padding: 1.25rem;
+            border-radius: 8px;
+            transition: transform 0.2s ease;
+        }
+
+        .kpi-temp-card.general {
+            background: rgba(27, 42, 74, 0.03);
+            border-left: 4px solid #1b2a4a;
+        }
+
+        .kpi-temp-card.maximo {
+            background: rgba(253, 126, 20, 0.04);
+            border-left: 4px solid #fd7e14;
+        }
+
+        /* Tipografías internas de los KPIs */
+        .kpi-temp-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+        }
+
+        .kpi-temp-valor {
+            font-size: 1.75rem;
+            font-weight: 800;
+            display: block;
+            margin-top: 0.25rem;
+        }
+
+        .kpi-temp-valor.dark { color: #1b2a4a; }
+        .kpi-temp-valor.orange { color: #fd7e14; }
+
+        .kpi-temp-subtexto {
+            font-size: 0.8rem;
+            color: #495057;
+            display: block;
+            margin-top: 0.5rem;
+            line-height: 1.4;
+        }
+
         @media (max-width: 900px) {
             .clima-grid-principal,
             .clima-grid-2 { grid-template-columns: 1fr; }
@@ -139,11 +190,23 @@
 
         <!-- INSIGHT BOX -->
         <div class="insight-box" id="insight-correlacion">
-            <span style="font-size:1.1rem;">🔍</span>
-            <strong>Hipótesis central:</strong> a mayor radiación solar (más luz natural),
-            menor nivel de lux registrado. Si el sistema funciona correctamente,
-            las luminarias se apagan o dimean en condiciones de alta radiación solar.
-            <span id="insight-resultado" style="margin-left:0.5rem;"></span>
+            <div style="margin-bottom:0.75rem;">
+                <span style="font-size:1.1rem;">🔍</span>
+                <strong>Hipótesis central:</strong> a mayor radiación solar (más luz natural),
+                menor nivel de lux registrado. Si el sistema funciona correctamente,
+                las luminarias se apagan o dimean en condiciones de alta radiación solar.
+                <span id="insight-resultado" style="margin-left:0.5rem;"></span>
+            </div>
+            <div style="border-top:1px solid rgba(46,92,138,0.2);padding-top:0.65rem;
+                        font-size:0.8rem;color:var(--azul-oscuro);opacity:0.85;">
+                <strong>📊 Contexto de operación:</strong>
+                El <strong>73,9% del consumo total</strong> ocurre en condición <em>Despejado Nocturno</em> —
+                el comportamiento esperado, ya que el alumbrado opera fundamentalmente de noche.
+                Las condiciones diurnas (Soleado, Nublado, Lluvioso) representan el <strong>26,1% restante</strong>
+                y son donde se concentran los incumplimientos detectados. Los valores de lux en condición
+                Soleado incluyen radiación solar captada por los sensores y no reflejan exclusivamente
+                la iluminación artificial.
+            </div>
         </div>
 
         <!-- KPIs de cabecera -->
@@ -187,41 +250,17 @@
                     <canvas id="grafico-scatter"></canvas>
                 </div>
                 <div class="leyenda-scatter" id="leyenda-scatter"></div>
+                <div style="background:#F0F4FA;border-radius:4px;padding:0.5rem 0.75rem;
+                            margin-top:0.75rem;font-size:0.75rem;color:var(--azul-oscuro);">
+                    ⚠️ <strong>Alerta de política:</strong> la condición <em>Nublado</em> genera el
+                    <strong>mayor costo de incumplimiento ($39.198 COP, 35,2% del total)</strong>.
+                    Los algoritmos de control tienen mayor dificultad bajo cielos con nubosidad parcial.
+                    Ver página de Políticas para el análisis completo.
+                </div>
             </div>
 
             <!-- Comparativo temperatura -->
             <div style="display:flex;flex-direction:column;gap:1rem;">
-
-                <!-- Cards temp frío / templado -->
-                <div class="grafico-card" style="padding:1.25rem;">
-                    <div class="grafico-titulo" style="margin-bottom:1rem;">🌡️ Consumo por Temperatura</div>
-                    <div class="temp-comparativo">
-                        <div class="temp-card fria">
-                            <div>
-                                <div class="temp-icono">🧊</div>
-                                <div class="temp-label">Días Fríos</div>
-                                <div class="temp-rango">&lt; 10 °C</div>
-                            </div>
-                            <div>
-                                <div class="temp-kwh" id="temp-fria-kwh">—</div>
-                                <div class="temp-kwh-unit">kWh promedio</div>
-                                <div class="temp-sub" id="temp-fria-sub">— registros</div>
-                            </div>
-                        </div>
-                        <div class="temp-card templada">
-                            <div>
-                                <div class="temp-icono">☀️</div>
-                                <div class="temp-label">Días Templados</div>
-                                <div class="temp-rango">&gt; 14 °C</div>
-                            </div>
-                            <div>
-                                <div class="temp-kwh" id="temp-templada-kwh">—</div>
-                                <div class="temp-kwh-unit">kWh promedio</div>
-                                <div class="temp-sub" id="temp-templada-sub">— registros</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- % luminarias encendidas por condición (mini) -->
                 <div class="grafico-card">
@@ -374,7 +413,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }));
 
     renderKPIs();
-    renderTempCards();
     renderScatter();
     renderBarras();
     renderAnomalias();
@@ -437,34 +475,6 @@ function calcularCorrelacion(x, y) {
         dy2  += (y[i] - my) ** 2;
     }
     return (dx2 * dy2) === 0 ? 0 : num / Math.sqrt(dx2 * dy2);
-}
-
-// ══════════════════════════════════════════════════════════════
-//  Tarjetas de temperatura
-// ══════════════════════════════════════════════════════════════
-function renderTempCards() {
-    const frias    = datosClima.filter(d => d.temperatura_promedio < 10);
-    const templadas = datosClima.filter(d => d.temperatura_promedio > 14);
-
-    function promediar(arr, campo) {
-        return arr.length > 0 ? arr.reduce((s, d) => s + d[campo], 0) / arr.length : 0;
-    }
-    function totalReg(arr) {
-        return arr.reduce((s, d) => s + d.total_registros, 0);
-    }
-
-    const kwhFria     = promediar(frias, 'kwh_promedio');
-    const kwhTemplada = promediar(templadas, 'kwh_promedio');
-
-    document.getElementById('temp-fria-kwh').textContent =
-        frias.length > 0 ? fmtNum(kwhFria, 4) : 'Sin datos';
-    document.getElementById('temp-fria-sub').textContent =
-        `${fmtNum(totalReg(frias), 0)} registros`;
-
-    document.getElementById('temp-templada-kwh').textContent =
-        templadas.length > 0 ? fmtNum(kwhTemplada, 4) : 'Sin datos';
-    document.getElementById('temp-templada-sub').textContent =
-        `${fmtNum(totalReg(templadas), 0)} registros`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -726,9 +736,19 @@ function renderTabla() {
 
     tbody.innerHTML = sorted.map(d => {
         const efic = d.eficiencia_lux_kwh;
-        const eficColor = efic > 3000 ? 'var(--verde)' : efic > 1000 ? 'var(--amarillo)' : 'var(--rojo)';
-        return `<tr>
-            <td>${badgeClima(d.condicion_clima)}</td>
+        const esSoleado   = d.condicion_clima === 'Soleado';
+        const eficColor   = esSoleado ? 'var(--texto-suave)' : efic > 3000 ? 'var(--verde)' : efic > 1000 ? 'var(--amarillo)' : 'var(--rojo)';
+        const eficDisplay = esSoleado
+            ? `<span title="⚠️ Incluye radiación solar. No refleja la eficiencia del alumbrado artificial."
+                    style="color:${eficColor};cursor:help;">⚠️ ${fmtNum(efic,0)}</span>`
+            : `<span style="font-weight:600;color:${eficColor};">${fmtNum(efic,0)}</span>`;
+        const esNublado = d.condicion_clima === 'Nublado';
+        return `<tr ${esNublado ? 'style="background:#F0F4FA;"' : ''}>
+            <td>
+                ${badgeClima(d.condicion_clima)}
+                ${esNublado ? `<span style="font-size:0.7rem;color:var(--rojo);font-weight:600;margin-left:4px;"
+                    title="Mayor costo de incumplimiento del sistema ($39.198 COP, 35,2%)">⚠️ mayor incumplimiento</span>` : ''}
+            </td>
             <td>${d.total_anomalias > 500
                 ? `<span class="badge-critico">${fmtNum(d.total_anomalias, 0)}</span>`
                 : d.total_anomalias > 100
@@ -737,7 +757,7 @@ function renderTabla() {
             }</td>
             <td>${fmtNum(d.kwh_total, 2)}</td>
             <td>${fmtLux(d.lux_promedio)}</td>
-            <td style="font-weight:600;color:${eficColor};">${fmtNum(efic, 0)}</td>
+            <td>${eficDisplay}</td>
             <td>${fmtNum(d.temperatura_promedio, 1)} °C</td>
             <td>${fmtPct(d.pct_encendidas)}</td>
             <td style="color:var(--texto-suave);">${fmtNum(d.total_registros, 0)}</td>

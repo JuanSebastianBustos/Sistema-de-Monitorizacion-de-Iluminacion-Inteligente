@@ -139,6 +139,15 @@
         .dias-alerta   { color: var(--amarillo); font-weight: 600; }
         .dias-normal   { color: var(--texto-suave); }
 
+        .alertas-criticas { background:var(--blanco); border-radius:var(--radio-tarjeta); box-shadow:var(--sombra); padding:1.25rem; margin-bottom:1.5rem; border-top:4px solid #C0392B; }
+        .alerta-critica-item { display:flex; align-items:flex-start; gap:0.75rem; padding:0.6rem 0; border-bottom:1px solid var(--gris-borde); font-size:0.82rem; }
+        .alerta-critica-item:last-child { border-bottom:none; }
+        .alerta-critica-icono { font-size:1.2rem; flex-shrink:0; }
+        .alerta-critica-info { flex:1; }
+        .alerta-critica-nombre { font-weight:700; color:var(--azul-oscuro); }
+        .alerta-critica-detalle { color:var(--texto-suave); margin-top:0.15rem; }
+        .alerta-critica-valor { font-size:1.2rem; font-weight:800; color:#C0392B; white-space:nowrap; flex-shrink:0; text-align:right; }
+
         @media (max-width: 900px) {
             .sensores-layout { grid-template-columns: 1fr; }
             .estado-grid     { grid-template-columns: 1fr 1fr; }
@@ -179,6 +188,11 @@
                 <div class="kpi-valor" id="kpi-sin-mant">—</div>
                 <div class="kpi-unidad">sensores con &gt; 180 días sin revisión</div>
             </div>
+        </div>
+
+        <div class="alertas-criticas" id="panel-alertas-criticas">
+            <div class="grafico-titulo" style="margin-bottom:0.75rem;">🚨 Alertas Críticas — Sensores sin Mantenimiento Prolongado</div>
+            <div id="lista-alertas-criticas"><div class="loading"><div class="spinner"></div> Cargando...</div></div>
         </div>
 
         <!-- MAPA + PANEL -->
@@ -283,6 +297,18 @@
             </div>
         </div>
 
+        <div class="grafico-card" style="margin-bottom:1rem;">
+            <div class="grafico-titulo">
+                🔬 Correlación: Días sin Mantenimiento vs % Anomalías
+                <span style="float:right;font-size:0.72rem;font-weight:400;color:var(--texto-suave);">
+                    ¿El deterioro del sensor genera ruido de anomalías?
+                </span>
+            </div>
+            <div style="position:relative;height:300px;"><canvas id="grafico-scatter-mant"></canvas></div>
+            <p id="nota-correlacion-mant" style="font-size:0.78rem;color:var(--texto-suave);
+                    margin-top:0.5rem;padding:0.5rem 0.75rem;background:var(--gris-fondo);border-radius:4px;"></p>
+        </div>
+
     </div><!-- /contenido-principal -->
 
     <footer style="background:var(--azul-oscuro);color:rgba(255,255,255,0.5);
@@ -330,6 +356,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderModelos();
     renderPrecision();
     renderTabla();
+    renderAlertasCriticas();
+    renderScatterMantenimiento();
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -557,9 +585,9 @@ function renderTabla() {
             <td style="font-size:0.75rem;color:var(--texto-suave);">${s.estado_sensor}</td>
             <td><span class="${critCls}">${s.estado_criticidad}</span></td>
             <td class="${diasCls}">${diasTxt}</td>
-            <td>${s.total_anomalias > 500
+            <td>${s.total_anomalias > 40
                 ? `<span class="badge-critico">${fmtNum(s.total_anomalias, 0)}</span>`
-                : s.total_anomalias > 100
+                : s.total_anomalias > 20
                 ? `<span class="badge-alerta">${fmtNum(s.total_anomalias, 0)}</span>`
                 : `<span class="badge-normal">${fmtNum(s.total_anomalias, 0)}</span>`
             }</td>
@@ -573,6 +601,60 @@ function ordenarTabla(col) {
     ordenTabla.asc = ordenTabla.col === col ? !ordenTabla.asc : false;
     ordenTabla.col = col;
     renderTabla();
+}
+
+function renderAlertasCriticas() {
+    const el   = document.getElementById('lista-alertas-criticas');
+    const top5 = datosSensores
+        .filter(s => s.dias_sin_mantenimiento !== null)
+        .sort((a,b) => b.dias_sin_mantenimiento - a.dias_sin_mantenimiento)
+        .slice(0, 5);
+    if (!top5.length) { el.innerHTML = '<p style="font-size:0.82rem;color:var(--texto-suave);">Sin datos de mantenimiento disponibles.</p>'; return; }
+    el.innerHTML = top5.map((s, i) => {
+        const anios = (s.dias_sin_mantenimiento / 365).toFixed(2);
+        const icono = i === 0 ? '🚨' : s.dias_sin_mantenimiento > 365 ? '⚠️' : '🔔';
+        const color = s.dias_sin_mantenimiento > 1000 ? '#C0392B' : s.dias_sin_mantenimiento > 365 ? '#F4A20D' : 'var(--texto-suave)';
+        return `<div class="alerta-critica-item">
+            <div class="alerta-critica-icono">${icono}</div>
+            <div class="alerta-critica-info">
+                <div class="alerta-critica-nombre">Sensor ${s.sensor_id} — ${s.nombre_zona}</div>
+                <div class="alerta-critica-detalle">Modelo: ${s.modelo} · Estado: ${s.estado_sensor} · Anomalías: ${fmtPct(s.pct_anomalias)}</div>
+            </div>
+            <div class="alerta-critica-valor" style="color:${color};">
+                ${fmtNum(s.dias_sin_mantenimiento, 0)} días<br>
+                <span style="font-size:0.72rem;font-weight:600;">(${anios} años)</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderScatterMantenimiento() {
+    const ctx = document.getElementById('grafico-scatter-mant')?.getContext('2d');
+    if (!ctx) return;
+    const datos = datosSensores.filter(s => s.dias_sin_mantenimiento !== null && s.estado_sensor !== 'Inactivo');
+    const xs = datos.map(s => s.dias_sin_mantenimiento), ys = datos.map(s => s.pct_anomalias);
+    const n = xs.length, mx = xs.reduce((a,v)=>a+v,0)/n, my = ys.reduce((a,v)=>a+v,0)/n;
+    let num=0,dx2=0,dy2=0;
+    for(let i=0;i<n;i++){num+=(xs[i]-mx)*(ys[i]-my);dx2+=(xs[i]-mx)**2;dy2+=(ys[i]-my)**2;}
+    const corr = (dx2*dy2===0)?0:num/Math.sqrt(dx2*dy2);
+    const notaEl = document.getElementById('nota-correlacion-mant');
+    if(notaEl){
+        notaEl.innerHTML = corr>0.3
+            ? `📊 Correlación positiva (r=${corr.toFixed(2)}): los sensores más deteriorados tienden a registrar más anomalías. <strong>Parte del ruido del sistema puede provenir de sensores descalibrados.</strong>`
+            : `📊 Correlación débil (r=${corr.toFixed(2)}): las anomalías no están fuertemente asociadas al deterioro del sensor. <strong>Las anomalías reflejan principalmente fallas reales en las luminarias.</strong>`;
+    }
+    new Chart(ctx,{
+        type:'scatter',
+        data:{datasets:[{label:'Sensores',
+            data:datos.map(s=>({x:s.dias_sin_mantenimiento,y:s.pct_anomalias,sensor:s})),
+            backgroundColor:datos.map(s=>COLOR_CRIT[s.estado_criticidad]+'88'),
+            borderColor:datos.map(s=>COLOR_CRIT[s.estado_criticidad]),
+            borderWidth:1,pointRadius:5,pointHoverRadius:8}]},
+        options:{...OPCIONES_BASE_CHART,
+            plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[`Sensor ${ctx.raw.sensor.sensor_id} (${ctx.raw.sensor.nombre_zona})`,`Sin mant: ${fmtNum(ctx.raw.x,0)} días`,`% Anomalías: ${fmtPct(ctx.raw.y)}`]}}},
+            scales:{
+                x:{...OPCIONES_BASE_CHART.scales.x,title:{display:true,text:'Días sin Mantenimiento',color:'#6C757D',font:{size:10}},ticks:{callback:v=>fmtNum(v,0)}},
+                y:{...OPCIONES_BASE_CHART.scales.y,title:{display:true,text:'% Anomalías',color:'#6C757D',font:{size:10}},ticks:{callback:v=>fmtPct(v)}}}}});
 }
 
 function filtrarCrit(btn) {

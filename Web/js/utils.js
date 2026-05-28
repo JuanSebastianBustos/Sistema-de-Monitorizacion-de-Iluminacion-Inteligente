@@ -1,5 +1,38 @@
 // ── utils.js — Funciones compartidas ────────────────────────
 
+// ══════════════════════════════════════════════════════════════
+//  Umbrales globales de anomalías — calibrados con datos reales
+//  Distribución: Sumapaz 9.649 | Usme 2.072 | CiudadBolívar 1.423
+//  Clúster alto: >2000 | Clúster medio: 500–2000 | Resto: <500
+// ══════════════════════════════════════════════════════════════
+// 1. Declaramos correctamente el objeto con const
+const UMBRAL_ANOMALIAS = {
+    CRITICO: 2000,
+    ALERTA:  500,
+};
+
+/**
+ * Genera el HTML de un badge de anomalías calibrado con datos reales.
+ * @param {number} valor - Número de anomalías
+ * @returns {string} HTML del badge
+ */
+// 2. Corregimos la palabra "function" y el espacio
+function badgeAnomalias(valor) {
+    // 3. Declaramos la variable 'n' correctamente con const
+    const n = fmtNum(valor, 0); 
+    
+    // 4. Ahora UMBRAL_ANOMALIAS y 'n' coinciden perfectamente
+    if (valor > UMBRAL_ANOMALIAS.CRITICO) {
+        return `<span class="badge-critico">${n}</span>`;
+    }
+    if (valor > UMBRAL_ANOMALIAS.ALERTA) {
+        return `<span class="badge-alerta">${n}</span>`;
+    }
+    return `<span class="badge-normal">${n}</span>`;
+}
+
+
+
 // ── 1. CARGA DE DATOS ────────────────────────────────────────
 const cache = {};
 
@@ -89,7 +122,14 @@ function inyectarNavbar() {
         <a href="index.html" class="navbar-brand-custom">
             💡 Iluminación Bogotá
         </a>
-        <ul class="navbar-nav-custom">
+        
+        <button class="navbar-toggle-btn" id="navbar-hamburger" aria-label="Abrir menú">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <ul class="navbar-nav-custom" id="navbar-menu">
             <li><a href="index.html">Inicio</a></li>
             <li><a href="dashboard.html">Dashboard</a></li>
             <li><a href="zonas.html">Zonas</a></li>
@@ -99,12 +139,25 @@ function inyectarNavbar() {
             <li><a href="clima.html">Clima</a></li>
             <li><a href="sensores.html">Sensores</a></li>
             <li><a href="modelo_ml.html">Modelo ML</a></li>
+            <li><a href="conclusiones.html">Conclusiones</a></li>
         </ul>
     </nav>`;
+    
     document.body.insertAdjacentHTML('afterbegin', nav);
+    
+    // NUEVO: Lógica para abrir/cerrar el menú en móviles
+    const hamburger = document.getElementById('navbar-hamburger');
+    const menu = document.getElementById('navbar-menu');
+    
+    if (hamburger && menu) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            menu.classList.toggle('active');
+        });
+    }
+
     marcarNavActivo();
 }
-
 // ── 6. MOSTRAR ERROR EN TARJETA ──────────────────────────────
 function mostrarError(elementoId, mensaje = 'Error al cargar datos') {
     const el = document.getElementById(elementoId);

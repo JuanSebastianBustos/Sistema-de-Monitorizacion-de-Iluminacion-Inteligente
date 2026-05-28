@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conclusiones — Iluminación Bogotá</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/utils.js" defer></script>
+    <style>
+        .hallazgo-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1.25rem; margin-bottom:1.5rem; }
+        .hallazgo-card { background:var(--blanco); border-radius:var(--radio-tarjeta); padding:1.5rem; box-shadow:var(--sombra); display:flex; flex-direction:column; gap:0.6rem; }
+        .hallazgo-card.rojo    { border-top:4px solid #C0392B; }
+        .hallazgo-card.verde   { border-top:4px solid #1A7A4A; }
+        .hallazgo-card.azul    { border-top:4px solid var(--azul-medio); }
+        .hallazgo-card.amarillo{ border-top:4px solid #F4A20D; }
+        .hallazgo-numero { font-size:2rem; font-weight:800; color:var(--azul-oscuro); line-height:1; }
+        .hallazgo-etiqueta { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--texto-suave); }
+        .hallazgo-desc { font-size:0.85rem; color:var(--texto-principal); line-height:1.55; }
+        .rec-card { background:var(--blanco); border-radius:var(--radio-tarjeta); padding:1.5rem; box-shadow:var(--sombra); margin-bottom:1rem; display:grid; grid-template-columns:auto 1fr auto; gap:1rem; align-items:start; }
+        .rec-numero { width:36px; height:36px; border-radius:50%; background:var(--azul-medio); color:var(--blanco); font-weight:700; font-size:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .rec-contenido h3 { font-size:1rem; font-weight:700; color:var(--azul-oscuro); margin-bottom:0.4rem; }
+        .rec-contenido p  { font-size:0.85rem; color:var(--texto-principal); line-height:1.55; }
+        .rec-impacto { text-align:right; font-size:0.78rem; flex-shrink:0; color:var(--texto-suave); min-width:120px; }
+        .rec-impacto strong { display:block; font-size:1.3rem; font-weight:800; color:var(--verde); }
+        .limitacion-item { padding:0.85rem 1rem; border-bottom:1px solid var(--gris-borde); display:flex; gap:0.75rem; font-size:0.83rem; }
+        .limitacion-item:last-child { border-bottom:none; }
+        .limitacion-icono { font-size:1.2rem; flex-shrink:0; }
+        .conv-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:1rem; }
+        .conv-zona { background:var(--blanco); border-radius:var(--radio-tarjeta); padding:1.25rem; box-shadow:var(--sombra); text-align:center; }
+        .conv-zona.prioritaria { border:2px solid #C0392B; }
+        .conv-nombre { font-weight:700; color:var(--azul-oscuro); margin-bottom:0.5rem; }
+        .conv-alertas { display:flex; justify-content:center; gap:0.5rem; flex-wrap:wrap; }
+        .conv-badge { padding:0.2rem 0.5rem; border-radius:10px; font-size:0.72rem; font-weight:700; }
+        .conv-badge.alto { background:#F8D7DA; color:#721C24; }
+        .conv-badge.bajo { background:#D4EDDA; color:#155724; }
+        @media(max-width:768px){ .rec-card { grid-template-columns:auto 1fr; } .rec-impacto { grid-column:1/-1; text-align:left; } }
+    </style>
+</head>
+<body>
+    <script>inyectarNavbar();</script>
+
+    <div class="contenido-principal">
+
+        <div style="margin-bottom:1.25rem;">
+            <h1 class="pagina-titulo">📋 Conclusiones y Recomendaciones</h1>
+            <p class="pagina-subtitulo">Síntesis del análisis completo — Bogotá D.C. · 2023–2024</p>
+        </div>
+
+        <!-- Hallazgos -->
+        <div class="grafico-card" style="margin-bottom:1.5rem;">
+            <div class="grafico-titulo">🔍 Hallazgos Principales</div>
+            <div class="hallazgo-grid">
+                <div class="hallazgo-card rojo">
+                    <div class="hallazgo-etiqueta">Convergencia Geográfica</div>
+                    <div class="hallazgo-numero">3 zonas</div>
+                    <div class="hallazgo-desc">Usme, Ciudad Bolívar y San Cristóbal concentran simultáneamente alto consumo, bajo cumplimiento normativo y los sensores más deteriorados. Son la prioridad de intervención.</div>
+                </div>
+                <div class="hallazgo-card amarillo">
+                    <div class="hallazgo-etiqueta">Falla de Servicio vs. Desperdicio</div>
+                    <div class="hallazgo-numero">9,8 : 1</div>
+                    <div class="hallazgo-desc">El problema principal no es el desperdicio diurno (3.868 eventos) sino la ausencia de servicio nocturno (38.055 registros). El impacto es de seguridad pública, no solo económico.</div>
+                </div>
+                <div class="hallazgo-card verde">
+                    <div class="hallazgo-etiqueta">Potencial de Modernización LED</div>
+                    <div class="hallazgo-numero">~4.204 kWh</div>
+                    <div class="hallazgo-desc">Ahorro estimado por sustitución completa de Sodio Alta Presión por LED: 24,9% del consumo total, sin reducción en calidad de iluminación.</div>
+                </div>
+                <div class="hallazgo-card azul">
+                    <div class="hallazgo-etiqueta">Ineficiencia Persistente</div>
+                    <div class="hallazgo-numero">+0,27%</div>
+                    <div class="hallazgo-desc">Variación interanual 2023–2024 casi nula. El sistema no está mejorando en eficiencia a pesar de que el 41% del parque ya es LED. Se requieren intervenciones estructurales.</div>
+                </div>
+                <div class="hallazgo-card amarillo">
+                    <div class="hallazgo-etiqueta">Incumplimiento Climático</div>
+                    <div class="hallazgo-numero">35,2%</div>
+                    <div class="hallazgo-desc">La condición Nublado genera el mayor costo de incumplimiento ($39.198 COP, 35,2% del total). Los algoritmos de control tienen mayor dificultad bajo cielos con nubosidad alta.</div>
+                </div>
+                <div class="hallazgo-card rojo">
+                    <div class="hallazgo-etiqueta">Estado de Mantenimiento</div>
+                    <div class="hallazgo-numero">598 días</div>
+                    <div class="hallazgo-desc">Promedio de días sin mantenimiento en toda la red de sensores (1,64 años). El sensor más crítico lleva 2.979 días (8.16 años) sin revisión técnica.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Convergencia visual -->
+        <div class="grafico-card" style="margin-bottom:1.5rem;">
+            <div class="grafico-titulo">🎯 Zonas de Intervención Prioritaria</div>
+            <p style="font-size:0.85rem;color:var(--texto-suave);margin-bottom:1rem;">
+                Zonas con borde rojo presentan las tres señales de alerta simultáneamente. Excluye Sumapaz por anomalía de datos conocida.
+            </p>
+            <div class="conv-grid">
+                <div class="conv-zona prioritaria">
+                    <div class="conv-nombre">🔴 Usme</div>
+                    <div class="conv-alertas">
+                        <span class="conv-badge alto">Alto consumo</span>
+                        <span class="conv-badge alto">Bajo cumplimiento</span>
+                        <span class="conv-badge alto">Alta anomalía</span>
+                    </div>
+                    <div style="font-size:0.72rem;color:var(--texto-suave);margin-top:0.5rem;">Prioridad: Crítica</div>
+                </div>
+                <div class="conv-zona prioritaria">
+                    <div class="conv-nombre">🔴 Ciudad Bolívar</div>
+                    <div class="conv-alertas">
+                        <span class="conv-badge alto">Alto consumo</span>
+                        <span class="conv-badge alto">Bajo cumplimiento</span>
+                        <span class="conv-badge alto">Alta anomalía</span>
+                    </div>
+                    <div style="font-size:0.72rem;color:var(--texto-suave);margin-top:0.5rem;">Prioridad: Crítica</div>
+                </div>
+                <div class="conv-zona prioritaria">
+                    <div class="conv-nombre">🔴 San Cristóbal</div>
+                    <div class="conv-alertas">
+                        <span class="conv-badge alto">Alto consumo</span>
+                        <span class="conv-badge alto">Bajo cumplimiento</span>
+                        <span class="conv-badge alto">Alta anomalía</span>
+                    </div>
+                    <div style="font-size:0.72rem;color:var(--texto-suave);margin-top:0.5rem;">Prioridad: Crítica</div>
+                </div>
+                <div class="conv-zona">
+                    <div class="conv-nombre">🟡 Bosa</div>
+                    <div class="conv-alertas">
+                        <span class="conv-badge alto">Alto consumo</span>
+                        <span class="conv-badge alto">Bajo cumplimiento</span>
+                        <span class="conv-badge bajo">Anomalía normal</span>
+                    </div>
+                    <div style="font-size:0.72rem;color:var(--texto-suave);margin-top:0.5rem;">Prioridad: Alta</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recomendaciones -->
+        <div class="grafico-card" style="margin-bottom:1.5rem;">
+            <div class="grafico-titulo">📌 Recomendaciones de Política Pública</div>
+            <div class="rec-card">
+                <div class="rec-numero">1</div>
+                <div class="rec-contenido">
+                    <h3>Intervención prioritaria en zonas convergentes</h3>
+                    <p>Concentrar recursos de mantenimiento, renovación tecnológica y diagnóstico en Usme, Ciudad Bolívar y San Cristóbal, que presentan las tres señales de alerta de forma simultánea.</p>
+                </div>
+                <div class="rec-impacto"><strong>Alta</strong>prioridad relativa</div>
+            </div>
+            <div class="rec-card">
+                <div class="rec-numero" style="background:var(--verde);">2</div>
+                <div class="rec-contenido">
+                    <h3>Programa de sustitución Sodio Alta Presión → LED</h3>
+                    <p>Ahorro estimado ~4.204 kWh (24,9% del consumo total) sin reducción en calidad lumínica. Ratio LED/Sodio = 2,50× en eficiencia. Priorizar zonas convergentes.</p>
+                </div>
+                <div class="rec-impacto"><strong>~4.204 kWh</strong>24,9% del total</div>
+            </div>
+            <div class="rec-card">
+                <div class="rec-numero" style="background:#F4A20D;">3</div>
+                <div class="rec-contenido">
+                    <h3>Ajuste del umbral de encendido para condición Nublada</h3>
+                    <p>Modificar los algoritmos de control para reducir el umbral de radiación solar cuando la cobertura nubosa supere el 60%. Costo cero de implementación.</p>
+                </div>
+                <div class="rec-impacto"><strong>Costo cero</strong>solo configuración</div>
+            </div>
+            <div class="rec-card">
+                <div class="rec-numero" style="background:#C0392B;">4</div>
+                <div class="rec-contenido">
+                    <h3>Plan de mantenimiento preventivo de sensores</h3>
+                    <p>Con 598 días de promedio sin mantenimiento, establecer revisión periódica máxima de 365 días. Prioridad: sur de la ciudad y sensores con más de 1.000 días sin revisión.</p>
+                </div>
+                <div class="rec-impacto"><strong>598 días</strong>promedio actual</div>
+            </div>
+        </div>
+
+        <!-- Limitaciones -->
+        <div class="grafico-card" style="margin-bottom:1.5rem;">
+            <div class="grafico-titulo">⚠️ Limitaciones del Análisis</div>
+            <div>
+                <div class="limitacion-item">
+                    <div class="limitacion-icono">🗺️</div>
+                    <div><strong>Anomalía de datos de Sumapaz:</strong> valores 595× el promedio del sistema. Excluida del análisis de convergencia. Requiere validación con datos reales del UAESP.</div>
+                </div>
+                <div class="limitacion-item">
+                    <div class="limitacion-icono">🔆</div>
+                    <div><strong>Cumplimiento de Lux no verificable:</strong> el campo <code>pct_cumplimiento_lux</code> presentó inconsistencias en el ETL. Requiere revisión de la fórmula de cálculo.</div>
+                </div>
+                <div class="limitacion-item">
+                    <div class="limitacion-icono">☀️</div>
+                    <div><strong>Eficiencia lux/kWh en horas diurnas:</strong> los valores de lux en condición Soleado incluyen radiación solar y no representan la eficiencia del alumbrado artificial.</div>
+                </div>
+                <div class="limitacion-item">
+                    <div class="limitacion-icono">🤖</div>
+                    <div><strong>Precisión del modelo ML:</strong> el 100% de accuracy refleja el origen determinístico del dataset simulado. En producción con datos reales se esperaría ~85–95%.</div>
+                </div>
+                <div class="limitacion-item">
+                    <div class="limitacion-icono">📊</div>
+                    <div><strong>Dataset simulado:</strong> los hallazgos son metodológicamente válidos pero deben validarse con datos operativos reales del UAESP antes de usarse en decisiones de política pública.</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer style="background:var(--azul-oscuro);color:rgba(255,255,255,0.5);text-align:center;padding:1.25rem;font-size:0.78rem;margin-top:1rem;">
+        Sistema de Monitorización de Iluminación Inteligente — Bogotá D.C. · ODS 7 · ODS 11 · ODS 13
+    </footer>
+</body>
+</html>
